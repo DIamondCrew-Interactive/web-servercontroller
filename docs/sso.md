@@ -1,4 +1,4 @@
-# Staff SSO → Server Controller 1.2.0
+# Staff SSO → Server Controller 1.2.1
 
 Staff broker je součástí samostatného repozitáře `web-staff`; jeho konfiguraci
 popisuje tamní `docs/SSO.md`. Server Controller používá tento centrální broker,
@@ -141,7 +141,7 @@ Neprovádí Linux PAM, skutečný Discord login, produkční proxy ani deploymen
    a ws cookie gate jsou potvrzené pro Cockpit 287.1-0+deb12u3. Naplánovat kontrolu
    reálného Discord browser loginu, heslového fallbacku a sudo/polkit E2E;
    tyto scénáře dosud nejsou potvrzené a sudo konfigurace se nemění.
-2. Použít release 1.2.0; existující tag 1.1.0 se nepřepisuje.
+2. Použít release 1.2.1; existující tag 1.1.0 se nepřepisuje.
 3. Nasadit Staff s SSO nejprve vypnutým, připravit privátní registry a runtime
    credential podle Staff docs/SSO.md, potom zapnout pouze servercontroller.
 4. Na SC ověřit release checksum a manifest, z 1.1.0 spustit `scripts/update.sh`.
@@ -195,3 +195,14 @@ sudo systemctl is-active cockpit.socket
 
 Nejprve odstranit adaptér, potom vrátit theme. SSO proxy route a Staff registraci
 vrátit z odpovídající deployment zálohy samostatně; theme rollback je nespravuje.
+
+## Installer 1.2.1 and restrictive umask
+
+The installer supports root umask 077 without changing the caller's umask.
+It explicitly sets its own runtime directory to 0755, code/units to 0644, CLI to
+0755, and secret/state files to 0600. Original cockpit.conf mode and ownership
+are saved for uninstall. Only an empty root-owned managed target is repaired;
+existing unrelated non-traversable parents cause a preflight error.
+Run the isolated installer regression command in docs/test-results.md first.
+After the failed 1.2.0 installation was rolled back, use `install`, not `update`,
+for the first SSO activation; existing config/mapping are preserved.

@@ -1,13 +1,12 @@
-# DiamondCrew Interactive / Server Controller 1.2.0
+# DiamondCrew Interactive / Server Controller 1.2.1
 
-Centrální Staff SSO nahrazuje samostatný Discord OAuth. Login tlačítko:
-Pokračovat přes DiamondCrew Interactive. Heslový Cockpit login zůstává.
-Staff session vydává audience-bound 45sekundové jednorázové tikety. Server
-Controller ověří server-to-server redeem, Ed25519 assertion, browser binding,
-jednorázovost a vlastní Unix mapping se skutečným UID.
+Fix the opt-in Staff SSO installer when root uses umask 077. Runtime directories
+and files receive explicit permissions, and cockpit.conf original mode is saved
+for uninstall/rollback. Existing unrelated parent directories are not silently
+made more permissive. Configuration and credentials remain private.
 
-Vyžaduje odpovídající Staff změny a konfiguraci podle docs/sso.md. Samotný
-theme update SSO nespouští. Nativní Debian PAM/bridge a cockpit-ws cookie včetně
-Unix identity stejné session prošly izolovaným testem na DIA. Reálný Discord
-browser login, heslový fallback a sudo/polkit E2E zůstávají neověřené.
-Sudo pravidla se nemění. Podrobné výsledky: docs/test-results.md.
+This corrects the 1.2.0 installation failure where the service could not traverse
+the generated dci-sso directory and atomic configuration writes lost mode bits.
+Staff SSO verification, Cockpit bearer/PAM, Unix mapping and sudo rules are unchanged.
+See docs/test-results.md for native authentication evidence, installer regression
+results and remaining browser/password/sudo end-to-end boundaries.

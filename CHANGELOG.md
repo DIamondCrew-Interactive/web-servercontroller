@@ -1,10 +1,18 @@
-# 1.2.0 — working source
+# 1.2.1
+
+- Fix opt-in SSO installation under restrictive root umask 077: explicit runtime
+  directory and file permissions, preserving private configuration permissions.
+- Preserve original cockpit.conf mode across install/uninstall instead of
+  deriving rollback permissions from a potentially modified managed file.
+- Runtime Staff ticket verification, Cockpit bearer/PAM and Unix mapping unchanged.
+
+# 1.2.0
 
 - Staff Center is the only Discord OAuth provider. Replace independent OAuth
   with audience-bound, browser-bound, one-use Staff SSO ticket redemption.
 - Keep local Unix identity mapping, password fallback and separate opt-in auth
   lifecycle. Add mapping CLI and cross-repository HTTP contract test.
-- Native PAM/session integration requires Debian staging; no push or deployment.
+- Native PAM/bridge and real cockpit-ws cookie identity gates passed on Debian 12.
 
 # 1.1.0
 

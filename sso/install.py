@@ -9,6 +9,7 @@ from pathlib import Path
 import pwd
 import re
 import shutil
+import stat
 import subprocess
 
 from broker import validate_config
@@ -34,12 +35,56 @@ def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def write(path, text, mode=0o600):
+def write(path, text, mode=0o600, owner=None):
     temporary = path.with_name(path.name + '.dci-new')
     fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode)
-    with os.fdopen(fd, 'w', encoding='utf-8') as stream:
-        stream.write(text)
-    os.replace(temporary, path)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+            stream.write(text)
+        if owner is not None:
+            os.chown(temporary, *owner)
+        # os.open's mode is masked by the caller's umask, including sudo -i 077.
+        # Apply the exact intended permissions before publishing the new file.
+        temporary.chmod(mode)
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def ensure_directory(path):
+    """Create only missing directories with explicit permissions, never chmod parents."""
+    missing = []
+    current = path
+    while not current.exists():
+        if current.is_symlink():
+            raise ValueError('Managed directories may not be symlinks')
+        missing.append(current)
+        current = current.parent
+    if current.is_symlink() or not current.is_dir():
+        raise ValueError('Managed directories must be real directories')
+    for directory in reversed(missing):
+        directory.mkdir(mode=0o755)
+        directory.chmod(0o755)
+
+
+def require_traversal(path):
+    """The non-root broker must traverse every existing code-path ancestor."""
+    for directory in (path, *path.parents):
+        if directory.is_symlink():
+            raise ValueError('Runtime directory ancestors may not be symlinks')
+        if directory.exists() and (not directory.is_dir() or
+                (os.name == 'posix' and not directory.stat().st_mode & 0o001)):
+            raise ValueError(f'Existing runtime parent must be traversable: {directory}')
+
+
+def config_metadata():
+    if CONF.is_symlink() or (CONF.exists() and not CONF.is_file()):
+        raise ValueError('Cockpit configuration must be a regular non-symlink file')
+    if not CONF.exists():
+        return {'existed': False, 'mode': None, 'uid': None, 'gid': None}
+    metadata = CONF.stat()
+    return {'existed': True, 'mode': stat.S_IMODE(metadata.st_mode),
+            'uid': metadata.st_uid, 'gid': metadata.st_gid}
 
 
 def uninstall():
@@ -47,6 +92,16 @@ def uninstall():
         print('Staff SSO authentication is not installed by this tool.')
         return
     state = json.loads(STATE.read_text())
+    present_conf = config_metadata()
+    original_conf = state.get('cockpit_conf', present_conf)
+    if (not isinstance(original_conf, dict) or
+            type(original_conf.get('existed')) is not bool or
+            (original_conf['existed'] and
+             (type(original_conf.get('mode')) is not int or
+              not 0 <= original_conf['mode'] <= 0o7777 or
+              any(type(original_conf.get(key)) is not int or original_conf[key] < 0
+                  for key in ('uid', 'gid'))))):
+        raise ValueError('Invalid saved Cockpit configuration metadata')
     for name, checksum in state['files'].items():
         path = Path(name)
         if path.exists() and (path.is_symlink() or sha(path) != checksum):
@@ -58,8 +113,12 @@ def uninstall():
     subprocess.run(['systemctl', 'stop', 'dci-sso-auth@*.service'], check=True)
     run('systemctl', 'disable', '--now', 'dci-sso-auth.socket', 'dci-sso.service')
     if BLOCK in config:
-        mode = CONF.stat().st_mode & 0o777
-        write(CONF, config.replace(BLOCK, '', 1), mode)
+        restored = config.replace(BLOCK, '', 1)
+        if not original_conf['existed'] and not restored:
+            CONF.unlink()
+        else:
+            metadata = original_conf if original_conf['existed'] else present_conf
+            write(CONF, restored, metadata['mode'], (metadata['uid'], metadata['gid']))
     for name in state['files']:
         Path(name).unlink(missing_ok=True)
     STATE.unlink()
@@ -80,6 +139,11 @@ def install(config_path):
             metadata = directory.stat()
             if not directory.is_dir() or (os.name == 'posix' and os.geteuid() == 0 and (metadata.st_uid != 0 or metadata.st_mode & 0o022)):
                 raise ValueError('Managed directories must be root-owned and not writable by other users')
+    # TARGET itself is our empty, root-owned code directory and may be repaired
+    # below. Unrelated existing parent directories are never made more public.
+    require_traversal(TARGET.parent)
+    require_traversal(CLI.parent)
+    original_conf = config_metadata()
     release = dict(line.split('=', 1) for line in OS_RELEASE.read_text().splitlines() if '=' in line)
     if release.get('ID', '').strip('"') != 'debian' or release.get('VERSION_ID', '').strip('"') != '12':
         raise ValueError('Debian 12 required')
@@ -106,7 +170,7 @@ def install(config_path):
     except KeyError:
         run('useradd', '--system', '--user-group', '--home-dir', '/var/lib/dci-sso', '--no-create-home', '--shell', '/usr/sbin/nologin', 'dci-sso')
     destination = ROOT_CONFIG
-    destination.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
+    ensure_directory(destination.parent)
     if destination.resolve() != config_path.resolve():
         if destination.exists() or destination.is_symlink():
             raise ValueError('Existing OAuth configuration; supply that path explicitly')
@@ -115,14 +179,19 @@ def install(config_path):
         raise ValueError('OAuth configuration may not be a symlink')
     os.chown(destination, 0, 0)
     destination.chmod(0o600)
-    TARGET.mkdir(parents=True, exist_ok=True, mode=0o755)
-    STATE.parent.mkdir(parents=True, exist_ok=True)
-    write(STATE, json.dumps({'files': {str(target): sha(source) for source, target in files.items()}}))
+    ensure_directory(TARGET)
+    TARGET.chmod(0o755)
+    ensure_directory(STATE.parent)
+    ensure_directory(SYSTEMD)
+    ensure_directory(CLI.parent)
+    ensure_directory(CONF.parent)
+    write(STATE, json.dumps({'cockpit_conf': original_conf,
+                            'files': {str(target): sha(source) for source, target in files.items()}}))
     for source, target in files.items():
         shutil.copyfile(source, target)
         target.chmod(0o755 if target.name == 'dci-servercontroller' else 0o644)
-    CONF.parent.mkdir(parents=True, exist_ok=True)
-    write(CONF, current + BLOCK, CONF.stat().st_mode & 0o777 if CONF.exists() else 0o644)
+    owner = (original_conf['uid'], original_conf['gid']) if original_conf['existed'] else None
+    write(CONF, current + BLOCK, original_conf['mode'] if original_conf['existed'] else 0o644, owner)
     run('systemctl', 'daemon-reload')
     run('systemctl', 'enable', '--now', 'dci-sso.service', 'dci-sso-auth.socket')
     run('systemctl', 'try-restart', 'cockpit.service')
