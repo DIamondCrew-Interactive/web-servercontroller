@@ -51,6 +51,23 @@ def ws_binary():
     raise ValueError('Native cockpit-ws binary not found')
 
 
+def prepare_config(root, auth_socket):
+    """Only public fixture configuration; explicit modes survive root umask 077."""
+    base = root/'ws-config'
+    config = base/'cockpit'
+    base.mkdir(mode=0o755)
+    base.chmod(0o755)
+    config.mkdir(mode=0o755)
+    config.chmod(0o755)
+    path = config/'cockpit.conf'
+    path.write_text(
+        '[WebService]\nAllowUnencrypted = true\n'
+        '[bearer]\nUnixPath = '+str(auth_socket)+'\n'
+        '[basic]\naction = none\n[negotiate]\naction = none\n[tls-cert]\naction = none\n')
+    path.chmod(0o644)
+    return path
+
+
 def exec_ws(root, descriptor):
     import pwd
     account = pwd.getpwnam(WS_ACCOUNT)
@@ -60,6 +77,8 @@ def exec_ws(root, descriptor):
     os.setgroups([])
     os.setresgid(account.pw_gid, account.pw_gid, account.pw_gid)
     os.setresuid(account.pw_uid, account.pw_uid, account.pw_uid)
+    if not os.access(root/'ws-config'/'cockpit'/'cockpit.conf', os.R_OK):
+        raise ValueError('Private fixture configuration is not readable by the ws instance')
     environment = {'PATH':'/usr/bin:/bin', 'LANG':'C.UTF-8',
                    'HOME':str(root/'ws-runtime'), 'XDG_RUNTIME_DIR':str(root/'ws-runtime'),
                    'XDG_CONFIG_DIRS':str(root/'ws-config'),
@@ -72,17 +91,12 @@ def run(root, store, user, command, broker_socket, stop):
     import pwd
     account = pwd.getpwnam(WS_ACCOUNT)
     ws_binary()
-    config = root/'ws-config'/'cockpit'
-    config.mkdir(parents=True)
     runtime = root/'ws-runtime'; runtime.mkdir(mode=0o700)
     os.chown(runtime, account.pw_uid, account.pw_gid)
     auth_socket = root/'ws-auth.sock'
     # Disable other methods only in this private fixture: never reach the real
     # password auth socket or ask the operator for Linux credentials.
-    (config/'cockpit.conf').write_text(
-        '[WebService]\nAllowUnencrypted = true\n'
-        '[bearer]\nUnixPath = '+str(auth_socket)+'\n'
-        '[basic]\naction = none\n[negotiate]\naction = none\n[tls-cert]\naction = none\n')
+    prepare_config(root, auth_socket)
     processes = []
     errors = []
     lock = threading.Lock()

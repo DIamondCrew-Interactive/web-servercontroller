@@ -1,6 +1,6 @@
 # Server Controller 1.2.2 verification
 
-- Current Windows run: 58 Python tests collected, 55 PASS, 3 POSIX-only skipped.
+- Current Windows run: 60 Python tests collected, 56 PASS, 4 POSIX-only skipped.
 - Previous unchanged frontend: 32 browser assertions PASS.
 - Signed Staff/Controller joint HTTP test PASS: existing Staff OAuth/session
   fixture, issuance/redeem, Ed25519 validation, canonical identity preservation,
@@ -94,7 +94,23 @@ fixture identity. It passed locally with the pinned package present. An installe
 regression refuses a missing cockpit-wsinstance group before changing anything.
 
 The previous isolated native PASS did not cover this production group boundary,
-as its fixture ran ws under cockpit-ws. A new native --with-ws run and the real
-browser login must confirm 1.2.2; neither is claimed as complete in this build.
+as its fixture ran ws under cockpit-ws. The main integrator confirmed CONTROLLER_122_NATIVE_RETRY_PASS on DIA for
+1.2.2 candidate 003bed057d87b69effc55e18130f095d3a653566 with umask 022. This
+used the actual cockpit-wsinstance identity and passed PAM plus native cookie
+checks. Production browser login remains pending.
 The real Staff session and Controller redemption had succeeded before the
 production Cockpit connection failure.
+
+### Native fixture umask correction
+
+The first 1.2.2 native attempt under umask 077 returned HTTP 401 because the
+TEST fixture's ws-config/cockpit directories and cockpit.conf were root-only.
+The same exact candidate passed when the integrator reran it under umask 022,
+confirming that the production socket group fix was independent of this test bug.
+
+The final fixture explicitly applies 0755 to its public config directories and
+0644 to its non-secret cockpit.conf, and checks readability after dropping to
+the actual wsinstance identity. Mapping, broker data and private runtime remain
+private. Regression tests include an actual POSIX umask 077 test and a root child
+reading the file as cockpit-wsinstance when that account exists. The final
+fixture must be rerun under umask 077 before release; production code is unchanged.

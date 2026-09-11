@@ -131,3 +131,9 @@ as `cockpit-ws:cockpit-ws`. Our bearer socket must be
 identity starting in 1.2.2. Earlier fixture results did not exercise this DAC
 boundary. No global group membership or production Cockpit unit changes are
 needed. The package-pinned unit regression checks both HTTP and HTTPS instances.
+
+The isolated ws fixture explicitly sets public test config directories to 0755
+and its non-secret cockpit.conf to 0644, regardless of caller umask. Private
+mapping/broker/runtime permissions stay restricted. An early test-fixture-only
+401 under umask 077 was eliminated by this permission correction; the production
+socket-group fix passed with the actual wsinstance identity under umask 022.
