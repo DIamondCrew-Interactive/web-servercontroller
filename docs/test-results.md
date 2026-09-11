@@ -1,6 +1,6 @@
-# Server Controller 1.2.1 verification
+# Server Controller 1.2.2 verification
 
-- Current Windows run: 56 Python tests collected, 53 PASS, 3 POSIX-only skipped.
+- Current Windows run: 58 Python tests collected, 55 PASS, 3 POSIX-only skipped.
 - Previous unchanged frontend: 32 browser assertions PASS.
 - Signed Staff/Controller joint HTTP test PASS: existing Staff OAuth/session
   fixture, issuance/redeem, Ed25519 validation, canonical identity preservation,
@@ -73,3 +73,28 @@ POSIX checks exercise new nested parents, retained empty 0700 target repair,
 and an unprivileged child reading/compiling installed broker sources. The three
 POSIX-specific tests were skipped on Windows; native result is still pending.
 This test does not start the production service or install an adapter.
+
+## 1.2.2 production web-instance identity fix
+
+Production evidence: the HTTPS cockpit-wsinstance unit reported permission denied
+connecting to /run/dci-sso-auth.sock, and no dci-sso-auth instance started. Its
+actual systemd properties were User=Group=cockpit-wsinstance, DynamicUser=no,
+PrivateUsers=no, with no supplementary groups or inaccessible paths. The socket
+incorrectly used root:cockpit-ws 0660. cockpit-ws is the TLS frontend identity,
+not the HTTP/HTTPS web instance identity in Debian 287.1-0+deb12u3.
+
+The fix changes only SocketGroup to cockpit-wsinstance and the installer group
+preflight. The isolated native ws fixture now uses cockpit-wsinstance too. It
+keeps socket mode 0660 and does not add users, global group memberships, or
+world access. PAM, sudo and identity/token verification logic are unchanged.
+
+A new regression reads the checksum-pinned cockpit-ws Debian package and
+compares BOTH HTTP and HTTPS systemd User/Group with our SocketGroup and test
+fixture identity. It passed locally with the pinned package present. An installer
+regression refuses a missing cockpit-wsinstance group before changing anything.
+
+The previous isolated native PASS did not cover this production group boundary,
+as its fixture ran ws under cockpit-ws. A new native --with-ws run and the real
+browser login must confirm 1.2.2; neither is claimed as complete in this build.
+The real Staff session and Controller redemption had succeeded before the
+production Cockpit connection failure.

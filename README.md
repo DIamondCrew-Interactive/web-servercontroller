@@ -1,6 +1,6 @@
 # DiamondCrew Interactive / Server Controller
 
-Source **1.2.1** pro Debian 12 a Cockpit **287.1-0+deb12u3**.
+Source **1.2.2** pro Debian 12 a Cockpit **287.1-0+deb12u3**.
 Přechod z 1.1.0 používá theme update a samostatnou opt-in instalaci SSO.
 
 ## Centrální Staff SSO

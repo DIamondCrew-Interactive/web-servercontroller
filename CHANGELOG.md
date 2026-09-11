@@ -1,3 +1,12 @@
+# 1.2.2
+
+- Grant the bearer auth socket to Debian's actual cockpit-wsinstance group,
+  not cockpit-ws (the separate TLS frontend identity). Keep mode 0660.
+- Require the correct group during installation and use the same production
+  service identity in the isolated native cookie test.
+- Add a regression against checksum-pinned Debian systemd unit definitions.
+- PAM, sudo, OAuth verification and Unix mapping behavior remain unchanged.
+
 # 1.2.1
 
 - Fix opt-in SSO installation under restrictive root umask 077: explicit runtime

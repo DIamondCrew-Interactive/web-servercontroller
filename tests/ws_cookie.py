@@ -18,6 +18,9 @@ import threading
 import time
 from urllib.parse import quote
 
+# Debian 287.1 cockpit-wsinstance service identity, distinct from cockpit-tls.
+WS_ACCOUNT = "cockpit-wsinstance"
+
 
 def response_shape(value):
     """Diagnostics contain field names only, never session credential values."""
@@ -50,7 +53,7 @@ def ws_binary():
 
 def exec_ws(root, descriptor):
     import pwd
-    account = pwd.getpwnam('cockpit-ws')
+    account = pwd.getpwnam(WS_ACCOUNT)
     os.dup2(descriptor, 3, inheritable=True)
     if descriptor != 3:
         os.close(descriptor)
@@ -67,7 +70,7 @@ def exec_ws(root, descriptor):
 
 def run(root, store, user, command, broker_socket, stop):
     import pwd
-    account = pwd.getpwnam('cockpit-ws')
+    account = pwd.getpwnam(WS_ACCOUNT)
     ws_binary()
     config = root/'ws-config'/'cockpit'
     config.mkdir(parents=True)

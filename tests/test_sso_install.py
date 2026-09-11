@@ -170,6 +170,21 @@ class SsoInstallTests(unittest.TestCase):
         self.assertEqual(m.ROOT_CONFIG.read_bytes(), config_before)
         self.assertEqual(m.TARGET.parent.stat().st_mode & 0o777, 0o700)
 
+    def test_missing_production_wsinstance_group_refused_before_mutation(self):
+        m = self.m
+        def lookup(name):
+            if name == 'cockpit-wsinstance':
+                raise KeyError(name)
+            return types.SimpleNamespace(gr_gid=123)
+        with patch.object(m.grp, 'getgrnam', side_effect=lookup) as query:
+            with self.assertRaises(KeyError):
+                m.install(m.ROOT_CONFIG)
+            query.assert_any_call('cockpit-wsinstance')
+        self.assertEqual(self.calls, [])
+        self.assertFalse(m.STATE.exists())
+        self.assertFalse(m.TARGET.exists())
+        self.assertEqual(m.CONF.read_text(), self.original)
+
     @unittest.skipUnless(os.name == 'posix', 'requires actual POSIX permission and umask semantics')
     def test_empty_0700_target_left_by_rollback_is_repaired(self):
         m = self.m

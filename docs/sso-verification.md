@@ -85,7 +85,7 @@ python3 -B tests/debian_sso_integration.py --user skopy --with-ws
 ```
 
 Volitelný gate spustí původní cockpit-ws jako neprivilegovaný systémový účet
-cockpit-ws. Parent předem otevře socket pouze na `127.0.0.1` s náhodným volným
+cockpit-wsinstance. Parent předem otevře socket pouze na `127.0.0.1` s náhodným volným
 portem a předá jej přes `LISTEN_FDS`; nehrozí převzetí obsazeného produkčního portu.
 `XDG_CONFIG_DIRS` ukazuje pouze do dočasného adresáře a UnixPath do vlastního
 auth socketu. HOME/runtime jsou dočasné. Produkční config/PAM/socket se nemění.
@@ -121,3 +121,13 @@ only a read-only identity report under the bridge account, with superuser false,
 and compares username, real/effective/saved UID/GID and supplementary groups.
 Diagnostics show response field names and explicit identity fields only; never
 CSRF values, cookies, bearer credentials, raw response bodies or channel URLs.
+
+### Debian service identity (1.2.2)
+
+The production HTTP and HTTPS cockpit-wsinstance units run as
+`cockpit-wsinstance:cockpit-wsinstance`; the separate cockpit-tls frontend runs
+as `cockpit-ws:cockpit-ws`. Our bearer socket must be
+`root:cockpit-wsinstance` mode `0660`. The native fixture uses the instance
+identity starting in 1.2.2. Earlier fixture results did not exercise this DAC
+boundary. No global group membership or production Cockpit unit changes are
+needed. The package-pinned unit regression checks both HTTP and HTTPS instances.

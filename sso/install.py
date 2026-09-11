@@ -150,7 +150,7 @@ def install(config_path):
     version = subprocess.check_output(['dpkg-query', '-W', '-f=${Version}', 'cockpit-ws'], text=True)
     if version != '287.1-0+deb12u3':
         raise ValueError('Cockpit 287.1-0+deb12u3 required')
-    grp.getgrnam('cockpit-ws')
+    grp.getgrnam('cockpit-wsinstance')
     grp.getgrnam('www-data')
     config = validate_config(json.loads(config_path.read_text(encoding='utf-8')))
     current = CONF.read_text() if CONF.exists() else ''

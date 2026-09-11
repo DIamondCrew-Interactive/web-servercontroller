@@ -6,7 +6,7 @@ ListenStream=/run/dci-sso-auth.sock
 Accept=yes
 SocketMode=0660
 SocketUser=root
-SocketGroup=cockpit-ws
+SocketGroup=cockpit-wsinstance
 MaxConnections=32
 
 [Install]

@@ -1,4 +1,4 @@
-# Staff SSO → Server Controller 1.2.1
+# Staff SSO → Server Controller 1.2.2
 
 Staff broker je součástí samostatného repozitáře `web-staff`; jeho konfiguraci
 popisuje tamní `docs/SSO.md`. Server Controller používá tento centrální broker,
@@ -141,7 +141,7 @@ Neprovádí Linux PAM, skutečný Discord login, produkční proxy ani deploymen
    a ws cookie gate jsou potvrzené pro Cockpit 287.1-0+deb12u3. Naplánovat kontrolu
    reálného Discord browser loginu, heslového fallbacku a sudo/polkit E2E;
    tyto scénáře dosud nejsou potvrzené a sudo konfigurace se nemění.
-2. Použít release 1.2.1; existující tag 1.1.0 se nepřepisuje.
+2. Použít release 1.2.2; existující tag 1.1.0 se nepřepisuje.
 3. Nasadit Staff s SSO nejprve vypnutým, připravit privátní registry a runtime
    credential podle Staff docs/SSO.md, potom zapnout pouze servercontroller.
 4. Na SC ověřit release checksum a manifest, z 1.1.0 spustit `scripts/update.sh`.
@@ -206,3 +206,19 @@ existing unrelated non-traversable parents cause a preflight error.
 Run the isolated installer regression command in docs/test-results.md first.
 After the failed 1.2.0 installation was rolled back, use `install`, not `update`,
 for the first SSO activation; existing config/mapping are preserved.
+
+## Debian wsinstance socket access (1.2.2)
+
+The auth socket is root:cockpit-wsinstance 0660, matching both Debian HTTP and
+HTTPS cockpit-wsinstance units. Do not use the separate cockpit-ws TLS frontend
+group, mode 0666, or add global supplementary groups as a workaround.
+From active SSO 1.2.1, update using the verified 1.2.2 source:
+
+```sh
+sudo python3 -B sso/install.py update --config /etc/diamondcrew-servercontroller/sso.json
+sudo stat -c '%U:%G %a' /run/dci-sso-auth.sock
+sudo systemctl is-active dci-sso-auth.socket dci-sso.service cockpit.socket
+```
+
+The expected socket output is `root:cockpit-wsinstance 660`. Keep a deployment
+backup; production browser login remains a separate verification step.
