@@ -1,9 +1,8 @@
-# Staff SSO → Server Controller (pracovní 1.2.0)
+# Staff SSO → Server Controller 1.2.0
 
-Lokální implementace, nic nebylo pushnuto ani nasazeno. Staff změny jsou v
-sousedním checkoutu `staff-center-sso` repozitáře `web-staff`, zejména
-`server/sso.ts`, `server/auth.ts`, `server/app.ts`, `server/config.ts` a
-`docs/SSO.md`. Nejde o samostatný Discord OAuth provider v Cockpitu.
+Staff broker je součástí samostatného repozitáře `web-staff`; jeho konfiguraci
+popisuje tamní `docs/SSO.md`. Server Controller používá tento centrální broker,
+nikoli samostatný Discord OAuth provider v Cockpitu.
 
 ## A. Architektura
 
@@ -49,8 +48,9 @@ To je alternativní passwordless autentizace, ne gateway před heslem. `[basic]`
 zůstává zachován. Zvýšení oprávnění přes sudo/polkit může nadále vyžadovat heslo.
 PAM auth pravidla nejsou automaticky přenesena: adaptér explicitně kontroluje
 disallowed-users, zamčené/prázdné shadow heslo, login shell a odmítá root/system
-účty. `PAM_RHOST=staff-sso`, nikoli původní klientská IP. Lokální PAM policy a
-Linux session lifecycle vyžadují integrační ověření před aktivací.
+účty. `PAM_RHOST=staff-sso`, nikoli původní klientská IP. PAM lifecycle a skutečná
+ws cookie session prošly izolovaným testem na DIA; viz docs/test-results.md.
+Reálný browser/password/sudo E2E je nadále samostatná neověřená hranice.
 
 Staff logout zneplatní jeho session a dosud nevyměněné tikety. Cockpit logout
 ukončí Cockpit session; uživatel může být stále přihlášen na Staff. Endpoint
@@ -130,31 +130,38 @@ SC (ve venv s `pip install cryptography==48.0.1`):
 `DCI_UPSTREAM=build/upstream python -m unittest discover -s tests -v`;
 `python scripts/preview.py --upstream build/upstream`; `node tests/browser.cjs`.
 Staff: `npm test`; `npm run build`.
-Společný kontrakt: `python tests/integration_staff.py ../staff-center-sso` po
+Společný kontrakt: `python tests/integration_staff.py /path/to/web-staff` po
 `npm ci` ve Staff checkoutu. Používá skutečné HTTP routy obou aplikací, mockuje
 jen Discord API a přesměrování HTTPS transportu do lokálního HTTP fixture.
 Neprovádí Linux PAM, skutečný Discord login, produkční proxy ani deployment.
 
-## I. Budoucí deployment pořadí (nyní NEPROVEDENO)
+## I. Deployment pořadí
 
-1. Ověřit na izolovaném Debianu 12/Cockpit 287.1-0+deb12u3 celý PAM lifecycle,
-   mapování, shodu id/groups, sudo/polkit, zamčené/expirující účty, souběh, logout,
-   selhání Staff a heslový fallback. Zachovat nezávislou SSH relaci.
-2. Vydat novou verzi obou repozitářů až po těchto kontrolách. Produkční tag 1.1.0
-   se nepřepisuje; tento SC source má pracovní verzi 1.2.0.
+1. Uchovat deployment zálohu a nezávislou SSH relaci. Nativní PAM, Unix identity
+   a ws cookie gate jsou potvrzené pro Cockpit 287.1-0+deb12u3. Naplánovat kontrolu
+   reálného Discord browser loginu, heslového fallbacku a sudo/polkit E2E;
+   tyto scénáře dosud nejsou potvrzené a sudo konfigurace se nemění.
+2. Použít release 1.2.0; existující tag 1.1.0 se nepřepisuje.
 3. Nasadit Staff s SSO nejprve vypnutým, připravit privátní registry a runtime
    credential podle Staff docs/SSO.md, potom zapnout pouze servercontroller.
 4. Na SC ověřit release checksum a manifest, z 1.1.0 spustit `scripts/update.sh`.
    Pro historickou 1.0.0 nejprve její uninstall, protože měla jinou sadu balíčků.
-5. Připravit config a opt-in adapter z nového source:
+5. Připravit root-only config se servisním secret a veřejnými Staff klíči.
+   Z rozbaleného, ověřeného release spustit theme update a první opt-in SSO:
 
 ```sh
-sudo install -d -m 0755 /etc/diamondcrew-servercontroller
-# Jen při prvním vytvoření; existující config nepřepisovat:
-sudo install -m 0600 sso/sso.example.json /etc/diamondcrew-servercontroller/sso.json
-sudoedit /etc/diamondcrew-servercontroller/sso.json
-sudo python3 -B sso/install.py install
+sha256sum -c MANIFEST.sha256
+sudo apt-get install python3-cryptography
+sudo sh scripts/update.sh
+sudo python3 scripts/manage.py status
+# Existující config vygenerovaný rootem nepřepisovat example souborem:
+sudo chown root:root /etc/diamondcrew-servercontroller/sso.json
+sudo chmod 0600 /etc/diamondcrew-servercontroller/sso.json
+sudo python3 -B sso/install.py install --config /etc/diamondcrew-servercontroller/sso.json
 sudo dci-servercontroller sso link skopy 584274123622973440
+sudo dci-servercontroller sso show skopy
+sudo systemctl is-active cockpit.socket dci-sso.service dci-sso-auth.socket
+curl -kI https://127.0.0.1:9090
 ```
 
 Instalátor neakceptuje neodinstalovaný starý samostatný Discord backend nebo cizí
@@ -176,3 +183,15 @@ jeho proxy location a zakázat jeho Staff registry položku. Samostatný theme
 rollback: `sudo sh scripts/rollback.sh`, případně uninstall pro původní Cockpit.
 Návrat k jinému adaptéru vyžaduje jeho odpovídající config a vlastní instalátor;
 neaktivovat zpět historický Discord OAuth automaticky. Secrets a mapy se nemažou.
+
+Z ponechaného rozbaleného release při návratu na předchozí theme 1.1.0:
+
+```sh
+sudo python3 -B sso/install.py uninstall
+sudo sh scripts/rollback.sh
+sudo python3 scripts/manage.py status
+sudo systemctl is-active cockpit.socket
+```
+
+Nejprve odstranit adaptér, potom vrátit theme. SSO proxy route a Staff registraci
+vrátit z odpovídající deployment zálohy samostatně; theme rollback je nespravuje.

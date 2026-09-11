@@ -1,6 +1,6 @@
 # Podepsaný Staff kontrakt a nativní ověření
 
-Pracovní zdroj 1.2.0, bez publikace a deploymentu. Přímý Discord OAuth je pouze
+Source 1.2.0 s potvrzeným nativním PAM a ws cookie gate. Přímý Discord OAuth je pouze
 ve Staff. Server Controller je relying party a lokální správce mapování.
 
 ## Redeem a assertion
@@ -51,7 +51,7 @@ Lokální testy: v izolovaném venv `python -m pip install cryptography==48.0.1`
 potom `python -m unittest discover -s tests -v`. GitHub workflow instaluje stejnou
 testovací verzi. Privátní testovací Ed25519 klíče vznikají pouze v paměti.
 
-Společný HTTP test: `python tests/integration_staff.py ../staff-center-sso`.
+Společný HTTP test: `python tests/integration_staff.py /path/to/web-staff`.
 Staff fixture musí na prvním stdout řádku vrátit JSON `{origin,issuer,verification_keys}`;
 origin je lokální HTTP URL, keys jsou veřejná PEM data. Fixture issuer je
 `https://staff.diamondcrew.net`, service secret testovací `s` opakované 43krát.
@@ -108,7 +108,7 @@ Podklad v přesném upstreamu:
 UID 1000 není identita ani očekávaný UID. Runtime používá NSS username/UID/GID,
 mapování pinuje skutečný UID. Dolní hranice 1000 omezuje mapování na běžné účty.
 Na DIA byl hlavním integrátorem pro candidate 9ddb205 ověřen skopy UID/GID 1001
-a skupiny 27, 100, 1001. Rozšířený ws cookie gate potřebuje nové nativní spuštění.
+a skupiny 27, 100, 1001. Rozšířený ws cookie gate byl následně potvrzen na candidate 8774e78; viz test-results.md.
 
 ### Login JSON schema correction
 

@@ -1,43 +1,48 @@
-# Verification of working 1.2.0: signed Staff assertions
+# Server Controller 1.2.0 verification
 
-- 51 Server Controller Python tests PASS; 32 browser assertions PASS.
-- Ed25519 signature/key/payload tampering, algorithm and local kid pinning,
-  rejected jwk/jku, duplicate/extra JSON members, issuer/audience/state/subject,
-  UUIDv4 jti and integer time/TTL/skew/expiry boundaries covered.
-- Durable SQLite replay cache accepts exactly once under concurrency and rejects
-  after reopening the database. Invalid signatures do not populate replay cache.
-- Callback cookie binding, CSRF, one-use handles/bearers and fallback UI covered.
-- CLI sso link/unlink/list/show dispatch, root requirement, filtered show covered.
-- PAM cleanup unit test checks all cleanup phases run even after a close error.
-- Build/lifecycle and reproducible source archive/MANIFEST tests PASS.
-  Installer tests use temporary files and simulated Debian commands.
+- 51 Python tests PASS; 32 browser assertions PASS.
+- Signed Staff/Controller joint HTTP test PASS: existing Staff OAuth/session
+  fixture, issuance/redeem, Ed25519 validation, canonical identity preservation,
+  one-use local bearer and callback replay refusal. Discord API and HTTPS
+  transport are mocked only in this joint fixture.
+- Signature/key/algorithm/audience/issuer/state/subject/time checks, durable
+  concurrent replay protection, CLI, installer/lifecycle and source packaging
+  tests PASS. Installer unit tests simulate system commands.
+- Actual Cockpit 287.1 login JSON schema and diagnostic redaction tests PASS.
 
-Signed Staff/SC HTTP integration PASS against the main integrator's work/web-staff
-checkout: Staff OAuth/session fixture -> signed issuance/redeem -> Controller
-Ed25519 verification -> one-use local bearer; canonical ID preserved and callback
-replay rejected. Issuer is read from fixture metadata and pinned by Staff to
-https://staff.diamondcrew.net. Discord API and HTTPS transport are mocked only
-in the integration fixture. No native PAM/session was executed by this test.
+## Confirmed native DIA results
 
-The main integrator reported native DIA PASS for exact candidate 9ddb205 and
-archive fae91edc674ee488b917bef12ee80d2b18d5c814d938002d36188dbee99d3d44:
-Cockpit 287.1-0+deb12u3, actual skopy UID/GID 1001, groups [27,100,1001],
-PAM open/close, real bridge and replay/expiry/unmapped/UID/root negatives PASS.
-This Windows task did not itself execute that native test.
+The main deployment integrator ran candidate
+8774e78d25215de47113d17cd301f2b1446c2c6b from archive
+1aab1ed42afd04f13074c62abd5a8d8bc8f2cb866e94b0f733dfa6f38c0caa71:
 
-The additional --with-ws mode is prepared and syntax checked, but still needs
-native execution against the new candidate. It verifies genuine cockpit-ws
-cookie issuance/use on an isolated loopback listener, with private config,
-runtime/auth sockets, and PAM cleanup. See sso-verification.md for boundaries.
+`sudo python3 -B tests/debian_sso_integration.py --user skopy --with-ws`
 
-Browser checks use static fixtures and mocked SSO responses. Actual cockpit-ws
-cookie gate, sudo/polkit, password login, Staff OAuth and production routing still
-need further verification. Only the integration candidate branch is published;
-main/tag/release/production were not changed by this task.
+Result: PASS, reported as INTEGRATION_PASS controller. Cockpit was
+287.1-0+deb12u3 on Debian 12; actual skopy UID/GID 1001 and groups [27,100,1001].
 
-The first native --with-ws run (ed92b4d) reached HTTP 200 but failed a test-only
-assumption that login JSON includes top-level user. Upstream 287.1
-cockpit_creds_to_json emits csrf-token and optional login-data instead. The
-corrected test validates this schema, cookie-only session continuity, and Unix
-identity through a cookie+CSRF authenticated external stream channel in the SAME
-ws session. Native rerun remains required. Runtime authentication code unchanged.
+Confirmed: real PAM open/close and credential cleanup; original cockpit-bridge
+real/effective/saved UID/GID and groups; rejected replay, expired bearer,
+unmapped Discord ID, changed pinned UID and root mapping; real cockpit-ws HTTP
+bearer login; ws-issued HttpOnly/SameSiteStrict cookie; cookie-only session
+continuity; same-cookie authenticated channel executing identity reporting
+under the mapped Unix user; anonymous/tampered-cookie/replayed-bearer refusal;
+PAM cleanup after stopping the private ws. Temporary resources were cleaned up.
+
+The cookie test uses Cockpit 287.1's actual csrf-token plus optional login-data
+schema, not a nonexistent top-level user. Identity is verified through the
+same session's authenticated external stream channel. Runtime authentication
+was unchanged between the native-tested candidate and final documentation prep.
+
+## Remaining boundaries
+
+Native tests use temporary config/runtime/Unix sockets and an ephemeral
+127.0.0.1 HTTP listener. They do not change production auth configuration.
+Real Discord login through the production browser/HTTPS/proxy, actual password
+fallback login and sudo/polkit end-to-end remain unverified. Browser assertions
+use static fixtures and mocked SSO responses. Sudo rules are unchanged; SSO does
+not promise passwordless privilege elevation or grant extra Unix rights.
+
+Source archives are built from an explicit allowlist, verified against
+MANIFEST.sha256, checked for known credential patterns and byte-reproducibility.
+This is not a guarantee of detecting every possible form of sensitive data.

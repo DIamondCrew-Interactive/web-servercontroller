@@ -1,7 +1,7 @@
 # DiamondCrew Interactive / Server Controller
 
-Pracovní source **1.2.0** pro Debian 12 a Cockpit **287.1-0+deb12u3**.
-Produkční release 1.1.0 se nepřepisuje. Tyto změny nejsou pushnuté ani nasazené.
+Source **1.2.0** pro Debian 12 a Cockpit **287.1-0+deb12u3**.
+Přechod z 1.1.0 používá theme update a samostatnou opt-in instalaci SSO.
 
 ## Centrální Staff SSO
 
@@ -12,12 +12,12 @@ ID na existující Unix účet. Nemá Discord Client ID/Secret ani přímé Disc
 volání. Samostatný experimentální Discord OAuth byl ze source odstraněn.
 
 Kompletní architektura, konfigurace, testy, deployment pořadí a rollback:
-[docs/sso.md](docs/sso.md). Staff část je v samostatném lokálním checkoutu
-`../staff-center-sso` repozitáře https://github.com/DIamondCrew-Interactive/web-staff.
+[docs/sso.md](docs/sso.md). Staff část je v samostatném repozitáři
+https://github.com/DIamondCrew-Interactive/web-staff.
 
-**SSO/PAM backend není zatím ověřený na skutečném Debianu.** Lokální HTTP testy
-a testy protokolu nenahrazují kontrolu Unix relace, oprávnění a sudo/polkit.
-Instalace theme ho automaticky neaktivuje.
+**Nativní Debian PAM/bridge a skutečná cockpit-ws cookie session byly ověřeny.**
+Reálný Discord browser login, heslový fallback a sudo/polkit E2E zůstávají
+neověřené. Sudo pravidla se nemění. Instalace theme SSO automaticky neaktivuje.
 
 ## Theme
 
@@ -56,7 +56,7 @@ python -m unittest discover -s tests -v
 python scripts/preview.py --upstream build/upstream
 npm ci --ignore-scripts
 npm run test:browser
-python tests/integration_staff.py ../staff-center-sso
+python tests/integration_staff.py /path/to/web-staff
 python scripts/package.py
 ```
 
