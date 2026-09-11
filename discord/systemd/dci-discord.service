@@ -1,0 +1,27 @@
+[Unit]
+Description=DiamondCrew Interactive Discord OAuth broker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=dci-discord
+Group=www-data
+SupplementaryGroups=dci-discord
+RuntimeDirectory=dci-discord
+RuntimeDirectoryMode=0750
+StateDirectory=dci-discord
+StateDirectoryMode=0700
+UMask=0007
+ExecStart=/usr/bin/python3 -B /usr/local/lib/dci-discord/oauth.py
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

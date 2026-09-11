@@ -1,0 +1,13 @@
+[Unit]
+Description=DiamondCrew Interactive Cockpit bearer authentication
+
+[Socket]
+ListenStream=/run/dci-discord-auth.sock
+Accept=yes
+SocketMode=0660
+SocketUser=root
+SocketGroup=cockpit-ws
+MaxConnections=32
+
+[Install]
+WantedBy=sockets.target

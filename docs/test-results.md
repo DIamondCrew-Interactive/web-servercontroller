@@ -1,46 +1,15 @@
-# Výsledky lokálního ověření
+# Lokální ověření 1.1.0
 
-Datum: 2026-09-11. Host: Windows, Python 3.13.14, Node 22.14.0,
-Playwright 1.63.0, Chrome 153.0.8010.36. Linux/WSL není dostupný.
+Windows, Python 3.13, Node 22, Playwright/Chrome. **29 Python testů a 32 browser assertions PASS.** Python syntax a GitHub workflow actionlint prošly.
 
-Původní lokální sada: **14 Python testů PASS, 20 browser assertions PASS**, žádný
-přeskočený Python test. Release sada doplňuje dva testy bezpečné extrakce Debian
-assetů a kontroly checksumů, tedy 16 Python testů. Aktuální archiv má explicitní
-allowlist; jeho přesný obsah dokládá přiložený `MANIFEST.sha256`.
+- Build nad veřejnými Debian balíčky Cockpit 287.1-0+deb12u3: 14 HTML vstupů, 3 upravené české katalogy. Původní aplikační kód a manifesty zachovány.
+- Lifecycle simulace: dvě dpkg diversions, install/update/rollback/uninstall, APT fallback, odmítnutí změněného upstreamu včetně login HTML.
+- OAuth: jednorázové a expirované tikety, vazba state na cookie, callback, redeem, kontrola Origin, duplicitní parametry, konfigurace HTTPS, UID mapování a rámování Cockpit protokolu.
+- Browser: desktop/mobile login, odstranění bílého pruhu, čitelné popisky, vypnutý Discord bez konfigurace, skrytí OAuth při PAM výzvě, přidání/odebrání Discord ID s požadavkem superuser. Dále kontroly modulových stylů, dialogů a focusu.
+- Source archiv: allowlist, reprodukovatelnost a manifest hashů kontroluje Python test.
 
-Před publikací bylo ověřeno všech 343 veřejných frontendových souborů také proti
-šesti veřejným Debian balíčkům 287.1-0+deb12u3. Všechny cesty i SHA256 odpovídají.
-`tests/debian-packages.json` připíná URL a SHA256 stažených `.deb`; CI je pouze
-rozbaluje pro testy. Žádné host konfigurace ani produkční credentials nepotřebuje.
+Browser používá původní CSS a upravený login markup, ale autentizační upstream JS je ve statickém náhledu odstraněn. Discord odpovědi a Cockpit spawn jsou mockované. Lifecycle simuluje systémové příkazy; OAuth HTTP testy používají lokální test server a mock Discord identity.
 
-| Kontrola | Výsledek / rozsah |
-| --- | --- |
-| Integrita snapshotu | SHA256 všech 343 veřejných frontendových souborů odpovídá výchozímu inventáři |
-| Generátor na skutečném snapshotu | 8 module overlay balíčků + dci_theme, přesně 14 HTML vstupů |
-| Zachování upstreamu | Po odebrání theme linku a shell brand bloku HTML odpovídá vstupu; JS/CSS/manifests jsou byte-for-byte totožné |
-| Relativní package odkazy | Všech 14 HTML odkazuje na existující theme CSS; testovaná i vnořená cesta |
-| Odmítnutí chybných vstupů | Dvojí patch, chybějící/duplicitní head, změněná shell struktura; neúplný build se uklidí |
-| Lifecycle simulace | Install → update → rollback → uninstall, opakovaný uninstall, APT fallback a regenerace nového upstream JS |
-| Ochranné scénáře | Cizí override, ručně změněný override, nepodporovaná verze, zastaralý rollback, simulovaná chyba během první aktivace |
-| Browser | 20 assertions: login, plný brand, chybové hlášení, mobilní šířka, iframe CSS, moduly, disabled pole, focus, modal, Escape, nulové HTTP/page errors |
-| Screenshoty | Login desktop/mobile, overview desktop/mobile, modal desktop; vizuálně zkontrolováno |
-| Source archiv | Allowlist, reprodukovatelnost, SHA256 každého souboru a shell executable módy ověřeny testem |
-| Shell syntax | `bash -n` všech čtyř entrypointů |
+Skutečný Cockpit backend, Linux PAM/systemd, Discord aplikace, reverse proxy, živé moduly a oprávnění po OAuth přihlášení nebyly lokálně ověřeny. Test success nenahrazuje Debian integrační ověření podle discord.md a debian-validation.md.
 
-Testy se spouštějí podle README. Výstup browser testu je v
-`build/browser-results.json`, screenshoty v `build/screenshots`.
-`build/` se nedistribuuje jako produkční balíček.
-
-Python lifecycle testy používají skutečné dočasné soubory a symlinky, ale simulují
-`dpkg-divert`, `systemctl` a kontrolu Debian verze. Na Windows je navíc simulovaný
-POSIX replacement adresářového symlinku, který Windows neumí stejným voláním.
-Proto jejich úspěch není důkazem skutečné Debian transakce ani atomického přepnutí.
-
-Browser test používá upstream CSS a původní login markup bez autentizačního JS.
-Modulové fixtures jsou ručně sestavené statické ukázky. Neověřují skutečný React
-render, PAM, eskalaci privilegií, systemd, D-Bus, networking/storage operace,
-PackageKit, xterm, multi-host, CSP ani produkční reverse proxy.
-
-Žádný backend nebyl lokálně spuštěn. Nebyly použity produkční credentials ani
-proveden deployment na DIA-01. Výsledky release CI jsou dostupné v GitHub Actions;
-publikační job se spustí pouze po úspěšném test/build jobu pro tag.
+Tento záznam popisuje ověření před publikací 1.1.0. Výsledek release CI je dostupný v GitHub Actions. Původní 1.0.0 byla na DIA-01 ověřena instalací a HTTP kontrolami; to neověřuje novou autentizaci v 1.1.0.

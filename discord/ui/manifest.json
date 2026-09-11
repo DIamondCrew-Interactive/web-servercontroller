@@ -1,0 +1,5 @@
+{
+  "version": "1.1.0",
+  "requires": {"cockpit": "287.1"},
+  "tools": {"index": {"label": "Discord účty", "order": 95, "path": "index.html"}}
+}

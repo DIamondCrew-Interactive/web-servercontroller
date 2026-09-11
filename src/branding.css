@@ -1,24 +1,63 @@
-/* Appended to theme.css by the builder; only used by login + shell. */
-body.login-pf {
-  background: radial-gradient(ellipse at 12% 18%, #2ec7ff18, transparent 45%), radial-gradient(ellipse at 90% 72%, #f43cb217, transparent 48%), #050b17;
-  min-height: 100vh;
+/* Cockpit 287.1 login: one centered card, including light-mode overrides. */
+html body.login-pf {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 0; min-height: 100vh; padding: 36px 20px; color: #e9f2ff;
+  background: radial-gradient(ellipse at 18% 15%, #2ec7ff12, transparent 50%), radial-gradient(ellipse at 85% 85%, #f43cb20d, transparent 50%), #050b17;
 }
-body.login-pf #main.container, body.login-pf #recent-hosts {
-  background: #0a1424; border: 1px solid #26384f; border-radius: 14px;
-  box-shadow: 0 24px 90px #0006; padding: 32px;
+html body.login-pf #main.container, html body.login-pf #recent-hosts {
+  width: 100%; max-width: 440px; padding: 30px 32px 24px; margin: 0;
+  color: #e9f2ff; border: 1px solid #29394f; border-radius: 16px;
+  background: linear-gradient(145deg, #0c1728f5, #060e1df5);
+  box-shadow: 0 24px 80px #0007, 0 0 32px #2ec7ff08;
 }
-body.login-pf #main.container { border-top: 3px solid #2ec7ff; }
-#badge { width: 128px; height: 128px; opacity: 1; background: url("dc-logo.png") center / contain no-repeat; filter: drop-shadow(0 8px 28px #2ec7ff20); }
-body.login-pf .form-control[type=text], body.login-pf .form-control[type=password] { background: #07111f; color: #e9f2ff; border: 1px solid #426080; border-radius: 5px; }
-body.login-pf .form-control:focus { border-color: #2ec7ff; }
-#brand { background: none; color: #e9f2ff; font-size: 24px; line-height: 1.35; text-transform: none; font-weight: 600; }
-/* Cockpit login.js copies this content into the real heading. */
+html body.login-pf #main.container { border-top: 2px solid #2ec7ff; }
+/* Decorative badge moves into the card heading; authentication controls stay intact. */
+html body.login-pf #badge { display: none; }
+html body.login-pf #brand {
+  box-sizing: border-box; margin: 0 auto 24px; padding: 96px 0 0;
+  width: 250px; max-width: 100%; min-width: 0; white-space: normal; text-align: center; color: #edf5ff;
+  background: url("dc-logo.png") center top / 94px 94px no-repeat;
+  font: 600 25px/1.18 "RedHatText", "Segoe UI", sans-serif; text-transform: none;
+}
 #brand::before { content: "DiamondCrew Interactive"; }
-#brand::after { content: "Server Controller"; display: block; color: #a5b8cf; font-size: 15px; font-weight: 400; margin-top: 6px; }
+#brand::after { content: "Server Controller"; display: block; margin-top: 8px; font-size: 13px; font-weight: 400; color: #a5b8cf; }
 #index-brand::before { content: "DiamondCrew Interactive"; }
-.login-pf .login-note { color: #a5b8cf; }
-.login-pf .details { color: #a5b8cf; }
-@media (max-width: 600px) {
-  body.login-pf #main.container, body.login-pf #recent-hosts { padding: 22px; border-radius: 9px; }
-  #brand { font-size: 21px; }
+html body.login-pf .control-label, html body.login-pf .login-note { color: #b9cbe0; }
+html body.login-pf .control-label { text-align: start; }
+html body.login-pf .form-control[type=text], html body.login-pf .form-control[type=password] {
+  min-height: 42px; background: #061220; color: #e9f2ff; border: 1px solid #38536f; border-radius: 6px;
+}
+html body.login-pf .form-control:focus { border-color: #2ec7ff; outline: 2px solid #2ec7ff66; outline-offset: 2px; }
+html body.login-pf #login-password-toggle.pf-c-button {
+  background: #0c1b2c; color: #bfd4ea; border: 1px solid #38536f; border-left: 0;
+  border-radius: 0 6px 6px 0; min-width: 42px;
+}
+html body.login-pf #login-password-input { border-radius: 6px 0 0 6px; }
+html body.login-pf #login-button { min-height: 42px; border-radius: 6px; }
+html body.login-pf #login-details.details {
+  background: transparent; color: #a5b8cf; width: 100%; max-width: 440px;
+  padding: 16px 0 0; margin: 20px 0 0; border-top: 1px solid #26384f;
+  font-size: 12px; text-align: center;
+}
+html body.login-pf #login-details .control-label { color: #a5b8cf; white-space: normal; font-weight: 400; }
+.dci-login-motto { margin: 24px 0 0; color: #a5b8cf; text-align: center; font-size: 12px; letter-spacing: .03em; }
+.dci-discord-button {
+  display: flex; justify-content: center; align-items: center; gap: 10px; width: 100%;
+  min-height: 43px; border: 1px solid #7480ff; border-radius: 6px; font-weight: 600;
+  background: #5865f2; color: #fff; text-decoration: none;
+}
+.dci-discord-button:hover { background: #4752c4; color: #fff; text-decoration: none; }
+.dci-discord-button[aria-disabled=true] { background: #242c54; border-color: #424c76; color: #b7c0e5; cursor: not-allowed; }
+.dci-login-separator { display: flex; align-items: center; gap: 12px; color: #93a8c3; margin: 18px 0 12px; font-size: 12px; }
+.dci-login-separator::before, .dci-login-separator::after { content: ""; height: 1px; flex: 1; background: #26384f; }
+.dci-discord-status { margin: 10px 0 0; color: #a5b8cf; font-size: 12px; text-align: center; }
+html body.login-pf #banner { max-width: 640px; margin: 0 0 20px; }
+html body.login-pf #recent-hosts { margin-top: 20px; }
+html body.login-pf .pf-c-alert.pf-m-danger { background: #2b1722; color: #ffb4b0; border-color: #ff746c; }
+html body.login-pf .pf-c-alert.pf-m-warning { background: #2d2616; color: #f3d36b; border-color: #f3d36b; }
+html body.login-pf .pf-c-alert.pf-m-info { background: #102637; color: #8bdfff; border-color: #2ec7ff; }
+html body.login-pf .pf-c-alert .pf-c-alert__title { color: inherit; }
+@media (max-width: 480px) {
+  html body.login-pf { padding: 20px 12px; justify-content: flex-start; }
+  html body.login-pf #main.container { padding: 24px; }
 }

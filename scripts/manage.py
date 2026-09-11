@@ -11,7 +11,7 @@ import sys
 import time
 import uuid
 
-from build import SOURCE, build, inventory
+from build import SOURCE, build, inventory, digest
 
 STATE = Path('/var/lib/diamondcrew-servercontroller')
 LOCAL = Path('/usr/local/share/cockpit')
@@ -102,8 +102,13 @@ def maintenance():
             run('systemctl', 'start', *active)
 
 
-def diversion_owner():
-    return run('dpkg-divert', '--listpackage', str(CSS))
+def diversion_owner(path=None):
+    return run('dpkg-divert', '--listpackage', str(path or CSS))
+
+
+def login_files():
+    login = UPSTREAM / 'static/login.html'
+    return login, login.with_name('login.html.dci-original'), CSS.with_name('dci-login.js')
 
 
 def verify_owned(data):
@@ -119,6 +124,15 @@ def verify_owned(data):
             raise RuntimeError(f'Foreign or modified branding: {path}')
     if diversion_owner() and (diversion_owner() != 'LOCAL' or run('dpkg-divert', '--truename', str(CSS)) != str(DIVERTED)):
         raise RuntimeError('Branding diversion belongs to another installation')
+    if data.get('login_override'):
+        login, backup, script = login_files()
+        for path, target in [(login, STATE / 'current/branding/login.html'), (script, STATE / 'current/branding/dci-login.js')]:
+            if exists(path) and not owned_link(path, target):
+                if path == login and not diversion_owner(login):
+                    continue
+                raise RuntimeError(f'Foreign login override: {path}')
+        if diversion_owner(login) and (diversion_owner(login) != 'LOCAL' or run('dpkg-divert', '--truename', str(login)) != str(backup)):
+            raise RuntimeError('Foreign login diversion')
 
 
 def deactivate(data):
@@ -133,6 +147,13 @@ def deactivate(data):
         CSS.unlink()
     if diversion_owner():
         run('dpkg-divert', '--local', '--rename', '--remove', '--divert', str(DIVERTED), str(CSS))
+    if data.get('login_override'):
+        login, backup, script = login_files()
+        for path, target in [(login, STATE / 'current/branding/login.html'), (script, STATE / 'current/branding/dci-login.js')]:
+            if owned_link(path, target):
+                path.unlink()
+        if diversion_owner(login):
+            run('dpkg-divert', '--local', '--rename', '--remove', '--divert', str(backup), str(login))
     data['active'] = False
     save(data)
 
@@ -140,23 +161,26 @@ def deactivate(data):
 def install():
     config = compatible()
     data = state()
-    names = config['packages'] + ['dci_theme']
+    names = config['packages'] + ['dci_theme', 'dci_discord']
     if data.get('active'):
         verify_owned(data)
         if set(data['packages']) != set(names):
             raise RuntimeError('Package set changed; uninstall before installing this theme version')
     else:
-        for path in [*(LOCAL / n for n in names), LOGO, DIVERTED]:
+        login, backup, script = login_files()
+        for path in [*(LOCAL / n for n in names), LOGO, DIVERTED, backup, script]:
             if exists(path):
                 raise RuntimeError(f'Conflicting local file: {path}')
         if diversion_owner() or CSS.is_symlink() or not CSS.is_file():
             raise RuntimeError('Expected original Debian branding.css without a diversion')
+        if diversion_owner(login) or login.is_symlink() or not login.is_file():
+            raise RuntimeError('Expected original Debian login.html without a diversion')
     if exists(HOOK) and HOOK.read_text() != HOOK_TEXT:
         raise RuntimeError(f'Foreign APT hook: {HOOK}')
     generation = STATE / 'generations' / (time.strftime('%Y%m%dT%H%M%S') + '-' + uuid.uuid4().hex[:8])
     report = build(UPSTREAM, generation)
     # Keep the exact management tools with each generation; no snapshot/config files.
-    for directory in ['scripts', 'src']:
+    for directory in ['scripts', 'src', 'discord']:
         shutil.copytree(SOURCE / directory, generation / 'source' / directory, ignore=shutil.ignore_patterns('__pycache__'))
     for filename in ['VERSION', 'compatibility.json']:
         shutil.copyfile(SOURCE / filename, generation / 'source' / filename)
@@ -170,7 +194,7 @@ def install():
     with maintenance():
         if inventory(UPSTREAM, config['packages']) != report['upstream_sha256']:
             raise RuntimeError('Upstream changed before activation')
-        pending = {**data, 'packages': names, 'active': True}
+        pending = {**data, 'packages': names, 'active': True, 'login_override': True}
         save(pending)  # Recovery metadata exists before the first system mutation.
         try:
             point(current, generation)
@@ -179,6 +203,10 @@ def install():
                 run('dpkg-divert', '--local', '--rename', '--add', '--divert', str(DIVERTED), str(CSS))
                 CSS.symlink_to(STATE / 'current/branding/branding.css')
                 LOGO.symlink_to(STATE / 'current/branding/dc-logo.png')
+                login, backup, script = login_files()
+                run('dpkg-divert', '--local', '--rename', '--add', '--divert', str(backup), str(login))
+                login.symlink_to(STATE / 'current/branding/login.html')
+                script.symlink_to(STATE / 'current/branding/dci-login.js')
                 for name in names:
                     (LOCAL / name).symlink_to(STATE / 'current/packages' / name, target_is_directory=True)
             HOOK.write_text(HOOK_TEXT)
@@ -221,6 +249,8 @@ def rollback():
     config = json.loads((SOURCE / 'compatibility.json').read_text())
     if report['cockpit_version'] != config['cockpit_version'] or report['upstream_sha256'] != inventory(UPSTREAM, config['packages']):
         raise RuntimeError('Previous generation uses different upstream files; uninstall or rebuild instead')
+    if data.get('login_override') and report.get('login_sha256') != digest(login_files()[1]):
+        raise RuntimeError('Previous generation uses different upstream login; uninstall or rebuild instead')
     verify_owned(data)
     with maintenance():
         point(STATE / 'current', target)

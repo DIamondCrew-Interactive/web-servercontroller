@@ -25,6 +25,7 @@ class LifecycleTests(unittest.TestCase):
         self.source = self.root / 'source'
         shutil.copytree(m.SOURCE / 'src', self.source / 'src')
         shutil.copytree(m.SOURCE / 'scripts', self.source / 'scripts', ignore=shutil.ignore_patterns('__pycache__'))
+        shutil.copytree(m.SOURCE / 'discord', self.source / 'discord', ignore=shutil.ignore_patterns('__pycache__'))
         self.config = {'packages': ['shell'], 'cockpit_version': '287.1-0+deb12u3', 'debian_packages': []}
         (self.source / 'compatibility.json').write_text(json.dumps(self.config))
         (self.source / 'VERSION').write_text('test-1')
@@ -36,6 +37,8 @@ class LifecycleTests(unittest.TestCase):
         css = upstream / 'branding/debian/branding.css'
         css.parent.mkdir(parents=True)
         css.write_text('original Debian CSS')
+        (upstream / 'static').mkdir()
+        (upstream / 'static/login.html').write_text('<html><head></head><body><div id="main"><div id="login" class="login-area" hidden></div></div><div class="details" id="login-details" hidden><p>Server</p></div></body></html>')
         values = {'STATE': self.root / 'state', 'LOCAL': self.root / 'local/cockpit', 'UPSTREAM': upstream,
                   'CSS': css, 'DIVERTED': css.with_name('branding.css.dci-original'), 'LOGO': css.with_name('dc-logo.png'),
                   'HOOK': self.root / 'apt/90dci', 'SOURCE': self.source}
@@ -44,6 +47,7 @@ class LifecycleTests(unittest.TestCase):
         m.STATE.mkdir()
         m.HOOK.parent.mkdir()
         self.diverted = False
+        self.diversions = {}
         self.fail_link = False
         self.calls = []
         self.stack.enter_context(patch.object(m, 'run', self.mock_run))
@@ -71,16 +75,19 @@ class LifecycleTests(unittest.TestCase):
         if args[0] == 'systemctl':
             return 'active' if args[1] == 'is-active' else ''
         if args[0] == 'dpkg-divert':
+            path = Path(args[-1])
             if '--listpackage' in args:
-                return 'LOCAL' if self.diverted else ''
+                return 'LOCAL' if str(path) in self.diversions else ''
             if '--truename' in args:
-                return str(m.DIVERTED) if self.diverted else str(m.CSS)
+                return self.diversions.get(str(path), str(path))
+            backup = Path(args[args.index('--divert') + 1])
             if '--add' in args:
-                m.CSS.rename(m.DIVERTED)
-                self.diverted = True
+                path.rename(backup)
+                self.diversions[str(path)] = str(backup)
             elif '--remove' in args:
-                m.DIVERTED.rename(m.CSS)
-                self.diverted = False
+                backup.rename(path)
+                del self.diversions[str(path)]
+            self.diverted = str(m.CSS) in self.diversions
             return ''
         raise AssertionError(args)
 
@@ -137,6 +144,13 @@ class LifecycleTests(unittest.TestCase):
         m.install()
         (m.UPSTREAM / 'shell/index.js').write_text('new upstream')
         with self.assertRaisesRegex(RuntimeError, 'different upstream'):
+            m.rollback()
+
+    def test_rollback_rejects_changed_original_login(self):
+        m.install()
+        m.install()
+        m.login_files()[1].write_text('changed original login')
+        with self.assertRaisesRegex(RuntimeError, 'different upstream login'):
             m.rollback()
 
     def test_failed_first_activation_restores_branding(self):

@@ -1,0 +1,11 @@
+# Add inside the existing HTTPS server block. Cockpit's current proxy stays in place.
+location /discord/ {
+    proxy_pass http://unix:/run/dci-discord/http.sock:;
+    proxy_set_header Host $host;
+    proxy_set_header Origin $http_origin;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_buffering off;
+    access_log off; # OAuth callback query contains a short-lived authorization code.
+    add_header Referrer-Policy no-referrer always;
+}
+# Do NOT proxy /internal/ to the broker.

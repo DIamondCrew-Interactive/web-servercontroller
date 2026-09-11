@@ -1,0 +1,13 @@
+[Unit]
+Description=DiamondCrew Interactive Cockpit Discord session
+Requires=dci-discord.service
+After=dci-discord.service
+
+[Service]
+User=root
+ExecStart=/usr/bin/python3 -B /usr/local/lib/dci-discord/auth.py
+StandardInput=socket
+StandardOutput=inherit
+StandardError=journal
+KillMode=control-group
+TimeoutStopSec=15

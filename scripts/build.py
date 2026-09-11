@@ -14,6 +14,34 @@ LINK = '<link rel="stylesheet" href="{href}" data-dci-theme="1">'
 BRAND = ('<div class="dci-brand" aria-label="DiamondCrew Interactive — Server Controller">'
          '<img src="../dci_theme/logo.png" alt="">'
          '<div><strong>DiamondCrew<br>Interactive</strong><small>Server Controller</small></div></div>')
+DISCORD = ('<div id="dci-discord-options"><a class="dci-discord-button" id="dci-discord-login" '
+           'href="#" aria-disabled="true">Continue with Discord</a>'
+           '<p id="dci-discord-status" class="dci-discord-status" role="status"></p>'
+           '<div class="dci-login-separator"><span id="dci-login-or">or</span></div></div>')
+
+
+def patch_login(text):
+    if 'dci-discord-options' in text:
+        raise ValueError('Login already themed')
+    text, count = re.subn(r'(<div id="login" class="login-area" hidden>\s*)', lambda m: m[0] + DISCORD, text)
+    if count != 1:
+        raise ValueError('Unknown login layout')
+    pattern = r'(\s*</div>\s*)(<div class="details" id="login-details" hidden>.*?</div>)'
+    text, count = re.subn(pattern, lambda m: '\n' + m[2] + '\n<p class="dci-login-motto">Create. Play. Together.</p>' + m[1], text, flags=re.S)
+    if count != 1:
+        raise ValueError('Unknown login details layout')
+    return text.replace('</head>', '<script src="cockpit/static/dci-login.js"></script>\n</head>')
+
+
+def patch_catalog(text, translations):
+    for key, value in translations.items():
+        encoded = json.dumps(key, ensure_ascii=False)
+        alternatives = re.escape(encoded)
+        if re.fullmatch(r'[A-Za-z_$][\w$]*', key):
+            alternatives += '|' + re.escape(key)
+        pattern = r'(?<![\w$])(' + alternatives + r'):(\[(?:null|""),)"(?:[^"\\]|\\.)*"(\])'
+        text = re.sub(pattern, lambda m: m[1] + ':' + m[2] + json.dumps(value, ensure_ascii=False) + m[3], text)
+    return text
 
 
 def digest(path):
@@ -61,6 +89,8 @@ def build(upstream, output, source=SOURCE):
         raise ValueError(f'Output must not exist: {output}')
     output.mkdir(parents=True)
     patched = []
+    catalogs = []
+    translations = json.loads((source / 'src/locales/cs.json').read_text(encoding='utf-8'))
     try:
         for name in names:
             shutil.copytree(upstream / name, output / 'packages' / name)
@@ -72,6 +102,12 @@ def build(upstream, output, source=SOURCE):
                     changed = patch_html(raw.decode('utf-8'), relative.removesuffix('.gz')).encode('utf-8')
                     path.write_bytes(gzip.compress(changed, mtime=0) if compressed else changed)
                     patched.append(relative)
+                elif path.name == 'po.cs.js.gz':
+                    original = gzip.decompress(path.read_bytes()).decode('utf-8')
+                    changed = patch_catalog(original, translations)
+                    if changed != original:
+                        path.write_bytes(gzip.compress(changed.encode('utf-8'), mtime=0))
+                        catalogs.append(relative)
         theme = output / 'packages' / 'dci_theme'
         theme.mkdir()
         shutil.copyfile(source / 'src/theme.css', theme / 'theme.css')
@@ -82,12 +118,20 @@ def build(upstream, output, source=SOURCE):
         branding.mkdir()
         (branding / 'branding.css').write_bytes((source / 'src/theme.css').read_bytes() + b'\n' + (source / 'src/branding.css').read_bytes())
         shutil.copyfile(source / 'src/assets/logo.png', branding / 'dc-logo.png')
+        login_source = upstream / 'static/login.html.dci-original'
+        if not login_source.exists():
+            login_source = upstream / 'static/login.html'
+        if not login_source.exists():
+            raise ValueError('Missing upstream login.html')
+        (branding / 'login.html').write_text(patch_login(login_source.read_text(encoding='utf-8')), encoding='utf-8', newline='\n')
+        (branding / 'dci-login.js').write_bytes((source / 'src/login.js').read_bytes())
+        shutil.copytree(source / 'discord/ui', output / 'packages/dci_discord')
         after = inventory(upstream, names)
         if before != after:
             raise ValueError('Upstream changed during build; retry outside package upgrades')
         report = {'theme_version': version, 'cockpit_version': config['cockpit_version'],
-                  'upstream_sha256': before, 'patched_html': patched,
-                  'packages': names + ['dci_theme']}
+                  'upstream_sha256': before, 'patched_html': patched, 'patched_catalogs': catalogs,
+                  'login_sha256': digest(login_source), 'packages': names + ['dci_theme', 'dci_discord']}
         (output / 'build.json').write_text(json.dumps(report, indent=2) + '\n')
         # Consistent permissions even with root umask 077.
         for path in output.rglob('*'):
@@ -105,4 +149,4 @@ if __name__ == '__main__':
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     report = build(args.upstream, args.output)
-    print(f"Built {len(report['patched_html'])} HTML overlays; upstream JS/CSS/manifests unchanged.")
+    print(f"Built {len(report['patched_html'])} HTML overlays and {len(report['patched_catalogs'])} Czech catalog overrides; upstream application code preserved.")

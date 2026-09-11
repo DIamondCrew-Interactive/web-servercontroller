@@ -5,7 +5,7 @@ import gzip
 from pathlib import Path
 import re
 import shutil
-from build import SOURCE, BRAND
+from build import SOURCE, BRAND, patch_login
 
 
 def generate(upstream, output):
@@ -22,14 +22,20 @@ def generate(upstream, output):
     (assets / 'branding.css').write_bytes((SOURCE / 'src/theme.css').read_bytes() + (SOURCE / 'src/branding.css').read_bytes())
     shutil.copyfile(SOURCE / 'preview/fixture.css', assets / 'fixture.css')
     shutil.copyfile(SOURCE / 'preview/fixture.js', assets / 'fixture.js')
+    shutil.copyfile(SOURCE / 'src/login.js', assets / 'dci-login.js')
     login = (upstream / 'static/login.html').read_text(encoding='utf-8')
     login = re.sub(r'<script\b[^>]*>.*?</script>', '', login, flags=re.S)
+    login = patch_login(login).replace('<html class="pf-theme-dark">', '<html lang="cs">')
     login = login.replace('cockpit/static/', 'assets/').replace('<title>Loading...</title>', '<title>DiamondCrew Interactive — Login preview</title>')
     login = login.replace('<h1 id="brand" class="hide-before"></h1>', '<h1 id="brand" class="hide-before">DiamondCrew Interactive</h1>')
     login = login.replace('id="login" class="login-area" hidden', 'id="login" class="login-area"')
     login = login.replace('id="error-group"', 'hidden id="error-group"')
+    login = login.replace('id="login-details" hidden', 'id="login-details"')
+    login = login.replace('<b id="server-name"></b>', '<b id="server-name">demo-node</b>')
+    login = login.replace('<p id="login-note" class="login-note"></p>', '<p id="login-note" class="login-note">Přihlášení účtem na tomto serveru.</p>')
     login = login.replace('</body>', '<script src="assets/fixture.js"></script></body>')
-    login = login.replace('<div id="login"', '<p class="preview-notice">Static preview · no authentication · do not enter real credentials</p><div id="login"')
+    login = login.replace('</head>', '<link rel="stylesheet" href="assets/fixture.css"></head>')
+    login = login.replace('<body class="login-pf">', '<body class="login-pf"><p class="preview-notice">Statický náhled · bez backendu · nepoužívejte skutečné přihlašovací údaje</p>')
     (output / 'login.html').write_text(login, encoding='utf-8')
     pages = [('overview', 'Přehled', 'overview'), ('services', 'Služby', 'services'), ('network', 'Síť', 'network'), ('storage', 'Úložiště', 'storage'), ('updates', 'Aktualizace softwaru', 'updates'), ('terminal', 'Terminál', 'terminal'), ('controls', 'Formuláře a dialogy', 'overview')]
     nav = ''.join(f'<li class="pf-c-nav__item"><a class="pf-c-nav__link" href="{key}.html" target="module">{title}</a></li>' for key, title, _ in pages)

@@ -9,7 +9,8 @@ import tarfile
 from build import SOURCE
 
 TOP_FILES = ['VERSION', 'compatibility.json', 'README.md', 'CHANGELOG.md', 'NOTICE.md', 'package.json', 'package-lock.json', '.gitignore', '.gitattributes', '.github/workflows/release.yml']
-DIRECTORIES = {'src': {'.css', '.png'}, 'scripts': {'.py', '.sh'},
+DIRECTORIES = {'src': {'.css', '.png', '.js', '.json'}, 'scripts': {'.py', '.sh'},
+               'discord': {'.py', '.json', '.js', '.html', '.css', '.service', '.socket', '.example'},
                'tests': {'.py', '.cjs', '.json'}, 'preview': {'.css', '.js', '.html'},
                'docs': {'.md', '.json'}}
 

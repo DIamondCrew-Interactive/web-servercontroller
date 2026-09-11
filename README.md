@@ -1,10 +1,11 @@
 # DiamondCrew Interactive
 
-## Server Controller · theme 1.0.0
+## Server Controller · 1.1.0
 
 Samostatný reskin skutečného Cockpit **287.1-0+deb12u3**, Debian GNU/Linux 12.
-Nejde o náhradu Cockpitu ani o nový administrační frontend. Přihlášení, PAM,
-oprávnění, Cockpit API, systemd a moduly nadále obsluhuje původní kód.
+Moduly a heslové přihlášení nadále obsluhuje Cockpit. Volitelný Discord adaptér
+ověří externí identitu, mapuje ji na existující UID a otevře relaci přes account,
+credential a session části PAM služby Cockpit. Neuděluje nová oprávnění.
 
 Stav: implementováno a lokálně ověřeno na snapshotu a statických browser fixtures.
 Skutečný backend a systémová instalace na Debianu dosud nejsou integračně ověřeny.
@@ -16,14 +17,19 @@ Zamýšlený produkční endpoint: https://admin.diamondcrew.net. Nástroje se n
 `src/theme.css` obsahuje navy paletu, gradient `#2ec7ff → #f43cb2 → #f3d36b`,
 PatternFly 4 proměnné a komponentové styly. `src/branding.css` doplňuje login.
 `src/assets/logo.png` je přesná kopie dodaného loga. Nepoužívají se CDN, vzdálené
-fonty, telemetry, nové JavaScriptové hooky ani úpravy autentizace.
+fonty ani telemetry. `src/login.js` přidává volitelný Discord tok a korekce českých
+popisků; `src/locales/cs.json` upravuje české katalogy generovaných modulů.
+Úvodní karta obsahuje logo, plný brand, Discord tlačítko, heslový formulář a slogan
+**Create. Play. Together.** Včetně světlého uživatelského režimu zůstává tmavá.
 
 Cockpit 287.1 nemá globální theme API pro všechny iframy. Generátor proto kopíruje
 osm existujících frontendových balíčků z `/usr/share/cockpit` do nové generace a
 do 14 HTML dokumentů přidává jeden relativní odkaz na `dci_theme/theme.css`.
 Do `shell/index.html` přidává navíc statický brand blok před navigaci.
-Manifesty, upstream CSS, JavaScript, překlady a licenční informace zachovává byte-for-byte.
-Pořadí a obsah menu ani layout skutečného overview nepřestavuje.
+Upstream manifesty, CSS a aplikační JavaScript zachovává byte-for-byte. Výjimkou
+jsou cílené řetězce v českých `po.cs.js.gz` katalozích (shell, metrics, users).
+Nový samostatný modul `dci_discord` přidává správu přiřazení účtů do navigace.
+Layout skutečného overview se nepřestavuje.
 
 Generace se aktivuje odkazy z `/usr/local/share/cockpit/<package>`. Cockpit podle
 XDG pravidel vybere lokální balíček před `/usr/share/cockpit`. Jde o překrytí
@@ -34,9 +40,13 @@ stroje, nikoli z přiloženého produkčního snapshotu.
 
 Login a shell již načítají `branding.css`. Na Debianu 287.1 je aktivní distribuční
 soubor `/usr/share/cockpit/branding/debian/branding.css`; instalátor jej evidovaně
-odkloní pomocí `dpkg-divert` a vytvoří odkaz na naši generaci. Přidá pouze náš
-`dc-logo.png`. Toto je jediná změna v cestě distribučního souboru. `/etc/os-release`,
-`cockpit.conf`, PAM, systemd jednotky, certifikáty a CSP se nemění.
+odkloní pomocí `dpkg-divert` a vytvoří odkaz na naši generaci. Druhý diversion
+chrání `/usr/share/cockpit/static/login.html`; kopie zachovává původní autentizační
+JS a DOM prvky, přesouvá detaily dovnitř karty a přidává Discord tlačítko.
+Náš `dc-logo.png` a `dci-login.js` se servírují branding loaderem. Samotný theme
+nemění PAM, cockpit.conf ani systémové jednotky. Samostatná instalace Discord
+adaptéru přidává bearer sekci do cockpit.conf a vlastní systemd jednotky;
+postup a hranice jsou v [docs/discord.md](docs/discord.md).
 
 Přesné podklady a alternativy: [docs/architecture.md](docs/architecture.md).
 
@@ -45,6 +55,7 @@ Přesné podklady a alternativy: [docs/architecture.md](docs/architecture.md).
 | Cesta | Účel |
 | --- | --- |
 | `src/` | Produkční CSS a dodané logo |
+| `discord/` | Volitelný OAuth broker, root auth adaptér, správa mapování, UI a systemd templates |
 | `compatibility.json`, `VERSION` | Přesná cílová verze a balíčky |
 | `scripts/build.py` | Generování overlay z instalace/snapshotu |
 | `scripts/manage.py` | Kontroly, generace, dpkg-divert, APT, rollback |
@@ -62,9 +73,9 @@ veřejných Debian `.deb` přesné verze; URL a SHA256 balíčků jsou připnut�
 `tests/debian-packages.json`. Výchozí inventář zároveň potvrzuje nezměněný snapshot.
 `docs/snapshot-sha256.json` obsahuje jen cesty veřejných assetů a hashe.
 
-Naše override: CSS, brand blok, vložené `<link>` a lokální package odkazy.
-Generované kopie JS/manifests jsou upstream. `base1`, `ssh`, `tuned` (manifest name
-`performance`), `static` a další instalované moduly se nenahrazují. Overview,
+Naše override: CSS, brand blok, vložené `<link>`, české překlady, login HTML a
+samostatné Discord soubory. Generované aplikační JS/manifests jsou upstream.
+`base1`, `ssh`, `tuned` (manifest name `performance`) a další moduly se nenahrazují. Overview,
 metrics, služby, logy, síť/firewall, storage, accounts, apps, updates, terminál a
 hardware info dostávají společné CSS. Ostatní případně doinstalované moduly zůstávají
 dostupné, ale jejich vzhled není tímto profilem garantován.
@@ -79,8 +90,8 @@ v `compatibility.json` s přesnou verzí. Node/npm nejsou na serveru potřeba.
 
 ```sh
 sha256sum -c SHA256SUMS
-tar -xzf diamondcrew-servercontroller-1.0.0.tar.gz
-cd diamondcrew-servercontroller-1.0.0
+tar -xzf diamondcrew-servercontroller-1.1.0.tar.gz
+cd diamondcrew-servercontroller-1.1.0
 sha256sum -c MANIFEST.sha256
 sudo sh scripts/install.sh
 sudo python3 scripts/manage.py status
@@ -94,6 +105,12 @@ verzi OS/Cockpitu. Nevymaže vlastní uživatelské overrides; ověřte pro kaž
 Vlastní `XDG_DATA_DIRS` nebo jiný distro variant branding vyžaduje samostatnou validaci.
 
 ## E. Aktualizace
+
+Při přechodu z 1.0.0 nejprve z SSH spusťte starý `uninstall.sh` (nebo zachovaný
+`/var/lib/diamondcrew-servercontroller/current/source/scripts/manage.py uninstall`),
+potom nový `install.sh`. Sada balíčků se rozšiřuje o `dci_discord`; instalátor
+proto nepřeklopí 1.0.0 na 1.1.0 běžným update. Další aktualizace stejné sady
+již používají následující postup.
 
 Pro novou verzi theme rozbalte a ověřte nový source archiv a spusťte z něj:
 
@@ -124,7 +141,7 @@ sudo sh scripts/uninstall.sh  # původní Cockpit; lze bezpečně opakovat
 ```
 
 Uninstall odstraní jen vlastněné symlinky a náš nezměněný APT hook, zruší diversion
-a vrátí původní Debian CSS. Zachová generace a audit v
+a vrátí původní Debian CSS i login HTML. Zachová generace a audit v
 `/var/lib/diamondcrew-servercontroller`. Nepřepisuje cizí pozdější úpravy.
 Při přerušené aktivaci spusťte uninstall z root SSH. Funguje i ze zachovaných nástrojů:
 
@@ -160,7 +177,7 @@ jako `DCI_UPSTREAM=../cockpit`; není součástí repozitáře.
 
 Browser test používá místní Chrome. `DCI_BROWSER=msedge` přepne na Edge.
 Výstupy: `build/preview/index.html`, `build/preview/login.html`, `build/screenshots/`
-a `dist/diamondcrew-servercontroller-1.0.0.tar.gz` + `SHA256SUMS`.
+a `dist/diamondcrew-servercontroller-1.1.0.tar.gz` + `SHA256SUMS`.
 Statické náhledy používají původní CSS a login HTML, ale ručně sestavená ukázková
 data a markup modulů. Nejsou screenshotem skutečného admin rozhraní po přihlášení.
 
@@ -173,6 +190,13 @@ s archivem a `SHA256SUMS`. Žádný workflow nenasazuje na server.
 Podrobný výsledek je v [docs/test-results.md](docs/test-results.md).
 
 ## H. Co není lokálně ověřeno
+
+Discord Client ID/Secret nejsou součástí source. Bez nakonfigurovaného adaptéru
+zůstává Discord tlačítko neaktivní a funguje původní heslový formulář. OAuth HTTP
+tok je testovaný s mockem Discord API, ne proti skutečné Discord aplikaci.
+Root PAM/Unix socket adaptér a Nginx konfigurace vyžadují test na disposable Debianu
+před aktivací na reálném hostu. Theme uninstall nenahrazuje uninstall volitelného
+Discord adaptéru; oba postupy jsou oddělené.
 
 Na Windows bez WSL nelze spustit skutečný Debian Cockpit/PAM/systemd backend.
 Mockované lifecycle testy nejsou důkazem funkčnosti reálného dpkg-divert, APT hooku,

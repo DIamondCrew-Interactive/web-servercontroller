@@ -1,3 +1,13 @@
+# 1.1.0
+
+- Centered login card matching the supplied reference; logo inside the card,
+  readable fields/password toggle in light mode, no white server-details strip.
+- Create. Play. Together. tagline and targeted Czech translation corrections.
+- Optional Discord authorization-code broker, single-use login tickets, existing
+  UID mapping, administrative account-link UI and Cockpit bearer/PAM adapter.
+- Separate opt-in Discord installation; no server credentials in source.
+- Requires Debian integration validation before enabling Discord authentication.
+
 # 1.0.0
 
 - Initial DiamondCrew Interactive / Server Controller theme for Debian 12,

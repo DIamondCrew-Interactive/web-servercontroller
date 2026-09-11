@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="cs" class="pf-theme-dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Discord účty</title><link rel="stylesheet" href="../dci_theme/theme.css"><link rel="stylesheet" href="style.css">
+<script src="../base1/cockpit.js"></script><script src="accounts.js" defer></script></head>
+<body><main><h1>Discord účty</h1><p>Přiřaďte Discord ID k existujícímu účtu serveru. Oprávnění účtu se tím nemění.</p>
+<button id="load" type="button">Načíst účty s administrátorským přístupem</button>
+<p id="status" role="status"></p><section id="editor" hidden>
+<form id="link-form"><label for="user">Účet serveru</label><select id="user" required></select>
+<label for="discord-id">Discord ID</label><input id="discord-id" inputmode="numeric" pattern="[0-9]{17,20}" required placeholder="Číselné ID uživatele">
+<button type="submit">Přiřadit Discord</button></form>
+<table><thead><tr><th>Účet</th><th>Discord ID</th><th>Akce</th></tr></thead><tbody id="links"></tbody></table>
+</section></main></body></html>

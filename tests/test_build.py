@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from build import SOURCE, BRAND, LINK, build, digest, patch_html
+from build import SOURCE, BRAND, LINK, build, digest, patch_html, patch_catalog
 
 SNAPSHOT = Path(os.environ.get('DCI_UPSTREAM', SOURCE.parent / 'cockpit'))
 
@@ -30,6 +30,10 @@ class BuildTests(unittest.TestCase):
                     text = re.sub(r'<link rel="stylesheet" href="[^"]+" data-dci-theme="1">\n', '', text)
                     text = text.replace(BRAND + '\n', '')
                     self.assertEqual(text, upstream.read_text(encoding='utf-8'))
+                elif relative in report['patched_catalogs']:
+                    original = gzip.decompress(upstream.read_bytes()).decode('utf-8')
+                    translations = json.loads((SOURCE / 'src/locales/cs.json').read_text(encoding='utf-8'))
+                    self.assertEqual(gzip.decompress(generated.read_bytes()).decode('utf-8'), patch_catalog(original, translations))
                 else:
                     self.assertEqual(generated.read_bytes(), upstream.read_bytes(), relative)
             for relative in report['patched_html']:
@@ -59,6 +63,8 @@ class BuildTests(unittest.TestCase):
             source = root / 'source'
             source.mkdir()
             (source / 'compatibility.json').write_text(json.dumps({'packages': ['broken']}))
+            (source / 'src/locales').mkdir(parents=True)
+            (source / 'src/locales/cs.json').write_text('{}')
             upstream = root / 'upstream/broken'
             upstream.mkdir(parents=True)
             (upstream / 'manifest.json').write_text('{}')

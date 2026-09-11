@@ -48,9 +48,12 @@ hotové řešení pro 287.1 by bylo nesprávné.
 
 1. Jedno společné CSS a původní dodané logo v čistém source balíčku.
 2. Generované kopie osmi existujících frontendových balíčků; 14 změn HTML a jeden
-   statický brand blok. Žádný patch minifikovaného JavaScriptu, CSS či API.
+   statický brand blok. Aplikační JavaScript, CSS a API zůstávají upstream;
+   od 1.1 se v generovaných kopiích mění vybrané české řetězce katalogů po.cs.js.gz.
 3. Lokální XDG package odkazy míří přes jediný `current` pointer na generaci.
-4. Login používá původní CSS loader s evidovaným odklonem jednoho Debian souboru.
+4. Login používá původní CSS loader. Od 1.1 jsou dva evidované odklony: distro
+   branding.css a static/login.html. Autentizační skript upstreamu se zachovává;
+   nové tlačítko, přesunuté detaily a motto jsou HTML adaptér.
 5. APT přepne zpět na upstream před spuštěním dpkg. Reaktivace je výslovná,
    ověřuje přesnou verzi a generuje čerstvé kopie.
 
@@ -89,15 +92,21 @@ rozložení živého React UI. Pro remote hosty ověřte package výběr a brand
   generations/<timestamp-id>/
     packages/{shell,systemd,metrics,networkmanager,storaged,packagekit,users,apps,dci_theme}/
     branding/{branding.css,dc-logo.png}
-    source/{scripts,src,VERSION,compatibility.json}
+    source/{scripts,src,discord,VERSION,compatibility.json}
     build.json
 /usr/local/share/cockpit/<package> -> /var/lib/.../current/packages/<package>
 /usr/share/cockpit/branding/debian/branding.css -> /var/lib/.../current/branding/branding.css
 /usr/share/cockpit/branding/debian/branding.css.dci-original
 /usr/share/cockpit/branding/debian/dc-logo.png -> /var/lib/.../current/branding/dc-logo.png
+/usr/share/cockpit/branding/debian/dci-login.js -> /var/lib/.../current/branding/dci-login.js
+/usr/share/cockpit/static/login.html -> /var/lib/.../current/branding/login.html
+/usr/share/cockpit/static/login.html.dci-original
 /etc/apt/apt.conf.d/90diamondcrew-servercontroller
 ```
 
 Generace obsahují pouze veřejné frontendové soubory a naše nástroje. TLS/PAM/host
 konfigurace se nikdy neukládají. Nová generace potřebuje přibližně velikost osmi
 frontendových balíčků navíc; staré generace se ponechávají pro audit.
+
+Volitelný Discord adaptér má vlastní instalační lifecycle a záměrně není aktivován
+theme instalátorem. Jeho architektura a měněné soubory jsou v [discord.md](discord.md).
