@@ -1,15 +1,30 @@
-# Lokální ověření 1.1.0
+# Verification of working 1.2.0: signed Staff assertions
 
-Windows, Python 3.13, Node 22, Playwright/Chrome. **29 Python testů a 32 browser assertions PASS.** Python syntax a GitHub workflow actionlint prošly.
+- 48 Server Controller Python tests PASS; 32 browser assertions PASS.
+- Ed25519 signature/key/payload tampering, algorithm and local kid pinning,
+  rejected jwk/jku, duplicate/extra JSON members, issuer/audience/state/subject,
+  UUIDv4 jti and integer time/TTL/skew/expiry boundaries covered.
+- Durable SQLite replay cache accepts exactly once under concurrency and rejects
+  after reopening the database. Invalid signatures do not populate replay cache.
+- Callback cookie binding, CSRF, one-use handles/bearers and fallback UI covered.
+- CLI sso link/unlink/list/show dispatch, root requirement, filtered show covered.
+- PAM cleanup unit test checks all cleanup phases run even after a close error.
+- Build/lifecycle and reproducible source archive/MANIFEST tests PASS.
+  Installer tests use temporary files and simulated Debian commands.
 
-- Build nad veřejnými Debian balíčky Cockpit 287.1-0+deb12u3: 14 HTML vstupů, 3 upravené české katalogy. Původní aplikační kód a manifesty zachovány.
-- Lifecycle simulace: dvě dpkg diversions, install/update/rollback/uninstall, APT fallback, odmítnutí změněného upstreamu včetně login HTML.
-- OAuth: jednorázové a expirované tikety, vazba state na cookie, callback, redeem, kontrola Origin, duplicitní parametry, konfigurace HTTPS, UID mapování a rámování Cockpit protokolu.
-- Browser: desktop/mobile login, odstranění bílého pruhu, čitelné popisky, vypnutý Discord bez konfigurace, skrytí OAuth při PAM výzvě, přidání/odebrání Discord ID s požadavkem superuser. Dále kontroly modulových stylů, dialogů a focusu.
-- Source archiv: allowlist, reprodukovatelnost a manifest hashů kontroluje Python test.
+Signed Staff/SC HTTP integration PASS against the main integrator's work/web-staff
+checkout: Staff OAuth/session fixture -> signed issuance/redeem -> Controller
+Ed25519 verification -> one-use local bearer; canonical ID preserved and callback
+replay rejected. Issuer is read from fixture metadata and pinned by Staff to
+https://staff.diamondcrew.net. Discord API and HTTPS transport are mocked only
+in the integration fixture. No native PAM/session was executed by this test.
 
-Browser používá původní CSS a upravený login markup, ale autentizační upstream JS je ve statickém náhledu odstraněn. Discord odpovědi a Cockpit spawn jsou mockované. Lifecycle simuluje systémové příkazy; OAuth HTTP testy používají lokální test server a mock Discord identity.
+The native tests/debian_sso_integration.py harness is prepared and syntax checked.
+Windows cannot execute native Linux PAM/bridge; native PASS is not claimed.
+It uses an existing account and temporary socket/map/DB, checks actual PAM
+open/close and bridge UID/GID/groups, and refuses replay/expiry/unmapped/UID/root.
+See sso-verification.md for requirements and expected audit/session effects.
 
-Skutečný Cockpit backend, Linux PAM/systemd, Discord aplikace, reverse proxy, živé moduly a oprávnění po OAuth přihlášení nebyly lokálně ověřeny. Test success nenahrazuje Debian integrační ověření podle discord.md a debian-validation.md.
-
-Tento záznam popisuje ověření před publikací 1.1.0. Výsledek release CI je dostupný v GitHub Actions. Původní 1.0.0 byla na DIA-01 ověřena instalací a HTTP kontrolami; to neověřuje novou autentizaci v 1.1.0.
+Browser checks use static fixtures and mocked SSO responses. Actual cockpit-ws
+cookie/session lifecycle, sudo/polkit, password login, Staff OAuth and production
+routing still need staging verification. Nothing was pushed or deployed.

@@ -25,7 +25,7 @@ class LifecycleTests(unittest.TestCase):
         self.source = self.root / 'source'
         shutil.copytree(m.SOURCE / 'src', self.source / 'src')
         shutil.copytree(m.SOURCE / 'scripts', self.source / 'scripts', ignore=shutil.ignore_patterns('__pycache__'))
-        shutil.copytree(m.SOURCE / 'discord', self.source / 'discord', ignore=shutil.ignore_patterns('__pycache__'))
+        shutil.copytree(m.SOURCE / 'sso', self.source / 'sso', ignore=shutil.ignore_patterns('__pycache__'))
         self.config = {'packages': ['shell'], 'cockpit_version': '287.1-0+deb12u3', 'debian_packages': []}
         (self.source / 'compatibility.json').write_text(json.dumps(self.config))
         (self.source / 'VERSION').write_text('test-1')

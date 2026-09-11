@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 import re
 
-MAPPING = Path('/etc/dci-discord/accounts.json')
+MAPPING = Path('/etc/diamondcrew-servercontroller/discord-users.json')
 
 
 def eligible(account):
@@ -17,7 +17,7 @@ def read_mapping():
     if not MAPPING.exists():
         return {}
     stat = MAPPING.stat()
-    if MAPPING.is_symlink() or stat.st_uid != 0 or stat.st_mode & 0o077:
+    if not MAPPING.is_file() or MAPPING.is_symlink() or stat.st_uid != 0 or stat.st_mode & 0o077:
         raise ValueError('Account mappings must be a root-owned regular file with mode 0600')
     return json.loads(MAPPING.read_text(encoding='utf-8'))
 
@@ -42,7 +42,7 @@ def main():
     if os.geteuid() != 0:
         raise SystemExit('Administrative access required')
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['list', 'link', 'unlink'])
+    parser.add_argument('action', choices=['list', 'show', 'link', 'unlink'])
     parser.add_argument('--user')
     parser.add_argument('--discord-id')
     args = parser.parse_args()
@@ -52,19 +52,31 @@ def main():
         records = read_mapping()
         if args.action == 'list':
             return print(json.dumps({'users': [a.pw_name for a in pwd.getpwall() if eligible(a)], 'links': records}))
-        if not args.user:
+        if args.action == 'show':
+            selected = {key: value for key, value in records.items() if key == args.discord_id or (args.user and value['username'] == args.user)}
+            if not selected:
+                raise ValueError('Identity is not linked')
+            return print(json.dumps({'links': selected}))
+        if args.action == 'unlink':
+            if args.discord_id:
+                if args.discord_id not in records:
+                    raise ValueError('Discord ID is not linked')
+                records.pop(args.discord_id)
+            elif args.user:
+                records = {key: value for key, value in records.items() if value['username'] != args.user}
+            else:
+                parser.error('--discord-id or --user is required')
+        elif not args.user:
             parser.error('--user is required')
-        account = pwd.getpwnam(args.user)
-        if not eligible(account):
-            raise ValueError('Only existing non-system login accounts can be linked')
         if args.action == 'link':
+            account = pwd.getpwnam(args.user)
+            if not eligible(account):
+                raise ValueError('Only existing non-system login accounts can be linked')
             if not re.fullmatch(r'[0-9]{17,20}', args.discord_id or ''):
                 raise ValueError('Discord ID must be a numeric snowflake, not a username')
             if args.discord_id in records or any(r['username'] == args.user for r in records.values()):
                 raise ValueError('Identity already linked. Unlink explicitly before changing it.')
             records[args.discord_id] = {'username': args.user, 'uid': account.pw_uid}
-        else:
-            records = {key: value for key, value in records.items() if value['username'] != args.user}
         temp = MAPPING.with_suffix('.new')
         fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(fd, 'w') as output:

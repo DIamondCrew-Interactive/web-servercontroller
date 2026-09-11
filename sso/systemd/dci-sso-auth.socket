@@ -2,7 +2,7 @@
 Description=DiamondCrew Interactive Cockpit bearer authentication
 
 [Socket]
-ListenStream=/run/dci-discord-auth.sock
+ListenStream=/run/dci-sso-auth.sock
 Accept=yes
 SocketMode=0660
 SocketUser=root

@@ -1,3 +1,11 @@
+# 1.2.0 — working source
+
+- Staff Center is the only Discord OAuth provider. Replace independent OAuth
+  with audience-bound, browser-bound, one-use Staff SSO ticket redemption.
+- Keep local Unix identity mapping, password fallback and separate opt-in auth
+  lifecycle. Add mapping CLI and cross-repository HTTP contract test.
+- Native PAM/session integration requires Debian staging; no push or deployment.
+
 # 1.1.0
 
 - Centered login card matching the supplied reference; logo inside the card,

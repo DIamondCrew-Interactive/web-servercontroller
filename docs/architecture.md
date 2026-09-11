@@ -1,5 +1,10 @@
 # Architektonické rozhodnutí — Cockpit 287.1
 
+Tento dokument popisuje mechanismus theme. Aktuální autentizace pracovní 1.2.0
+je [centrální Staff SSO](sso.md). Historický source `discord/` byl nahrazen `sso/`;
+Server Controller již neimplementuje Discord OAuth. Existující package ID
+`dci_discord` se zachovává jen pro kompatibilitu module overrides.
+
 ## Zjištění ze snapshotu
 
 343 veřejných frontendových souborů, 5 471 665 bajtů. Verzi potvrzuje seznam

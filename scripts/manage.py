@@ -180,7 +180,7 @@ def install():
     generation = STATE / 'generations' / (time.strftime('%Y%m%dT%H%M%S') + '-' + uuid.uuid4().hex[:8])
     report = build(UPSTREAM, generation)
     # Keep the exact management tools with each generation; no snapshot/config files.
-    for directory in ['scripts', 'src', 'discord']:
+    for directory in ['scripts', 'src', 'sso']:
         shutil.copytree(SOURCE / directory, generation / 'source' / directory, ignore=shutil.ignore_patterns('__pycache__'))
     for filename in ['VERSION', 'compatibility.json']:
         shutil.copyfile(SOURCE / filename, generation / 'source' / filename)

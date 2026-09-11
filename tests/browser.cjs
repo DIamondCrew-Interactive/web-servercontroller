@@ -25,15 +25,15 @@ const server = http.createServer((req, res) => {
     const errors = [];
     page.on('pageerror', err => errors.push(err.message));
     page.on('response', response => { if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
-    await page.route('**/discord/status', route => route.fulfill({json: {enabled: true}}));
-    await page.route('**/discord/redeem', route => route.fulfill({status: 204}));
+    await page.route('**/auth/sso/status', route => route.fulfill({json: {enabled: true}}));
+    await page.route('**/auth/sso/redeem', route => route.fulfill({status: 204}));
     await page.goto(`${url}/login.html`);
     assert(await page.locator('#login-user-input').isVisible()); checks++;
     assert(await page.locator('#login-password-input').isVisible()); checks++;
     assert.equal(await page.locator('#brand').textContent(), 'DiamondCrew Interactive'); checks++;
     assert.equal(await page.locator('#brand').evaluate(el => getComputedStyle(el, '::after').content), '"Server Controller"'); checks++;
     await page.waitForFunction(() => document.querySelector('#dci-discord-login').getAttribute('aria-disabled') !== 'true');
-    assert.equal(await page.locator('#dci-discord-login').textContent(), 'Pokračovat přes Discord'); checks++;
+    assert.equal(await page.locator('#dci-discord-login').textContent(), 'Pokračovat přes DiamondCrew Interactive'); checks++;
     assert.equal(await page.locator('.dci-login-motto').textContent(), 'Create. Play. Together.'); checks++;
     assert(await page.locator('#main #login-details').isVisible()); checks++;
     assert.equal(await page.locator('#login-details').evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(0, 0, 0, 0)'); checks++;
@@ -48,7 +48,7 @@ const server = http.createServer((req, res) => {
     await page.locator('#user-group').evaluate(el => { el.hidden = true; });
     await page.waitForFunction(() => document.querySelector('#dci-discord-options').hidden);
     assert(!(await page.locator('#dci-discord-login').isVisible())); checks++;
-    await page.route('**/discord/status', route => route.fulfill({json: {enabled: false}}));
+    await page.route('**/auth/sso/status', route => route.fulfill({json: {enabled: false}}));
     await page.reload();
     await page.locator('#dci-discord-status').waitFor({state: 'visible'});
     assert.equal(await page.locator('#dci-discord-login').getAttribute('aria-disabled'), 'true'); checks++;
@@ -77,7 +77,7 @@ const server = http.createServer((req, res) => {
     await page.screenshot({path: path.join(screenshots, 'overview-mobile.png'), fullPage: true});
     const accounts = await browser.newPage();
     await accounts.route('**/*', route => route.fulfill({body: ''}));
-    await accounts.setContent(fs.readFileSync(path.resolve(__dirname, '../discord/ui/index.html'), 'utf8').replace(/<script\b[^>]*>.*?<\/script>/gs, ''));
+    await accounts.setContent(fs.readFileSync(path.resolve(__dirname, '../sso/ui/index.html'), 'utf8').replace(/<script\b[^>]*>.*?<\/script>/gs, ''));
     await accounts.evaluate(() => {
       window.commands = []; window.bindings = {};
       window.cockpit = {spawn: async (args, options) => {
@@ -88,7 +88,7 @@ const server = http.createServer((req, res) => {
         return JSON.stringify({users: ['demo'], links: window.bindings});
       }};
     });
-    await accounts.addScriptTag({content: fs.readFileSync(path.resolve(__dirname, '../discord/ui/accounts.js'), 'utf8')});
+    await accounts.addScriptTag({content: fs.readFileSync(path.resolve(__dirname, '../sso/ui/accounts.js'), 'utf8')});
     await accounts.locator('#load').click();
     await accounts.locator('#editor').waitFor({state: 'visible'});
     assert.equal(await accounts.locator('#user').inputValue(), 'demo'); checks++;

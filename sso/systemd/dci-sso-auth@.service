@@ -1,0 +1,13 @@
+[Unit]
+Description=DiamondCrew Interactive Cockpit SSO session
+Requires=dci-sso.service
+After=dci-sso.service
+
+[Service]
+User=root
+ExecStart=/usr/bin/python3 -B /usr/local/lib/dci-sso/auth.py
+StandardInput=socket
+StandardOutput=inherit
+StandardError=journal
+KillMode=control-group
+TimeoutStopSec=15

@@ -15,7 +15,7 @@ BRAND = ('<div class="dci-brand" aria-label="DiamondCrew Interactive — Server 
          '<img src="../dci_theme/logo.png" alt="">'
          '<div><strong>DiamondCrew<br>Interactive</strong><small>Server Controller</small></div></div>')
 DISCORD = ('<div id="dci-discord-options"><a class="dci-discord-button" id="dci-discord-login" '
-           'href="#" aria-disabled="true">Continue with Discord</a>'
+           'href="#" aria-disabled="true">Continue with DiamondCrew Interactive</a>'
            '<p id="dci-discord-status" class="dci-discord-status" role="status"></p>'
            '<div class="dci-login-separator"><span id="dci-login-or">or</span></div></div>')
 
@@ -125,7 +125,7 @@ def build(upstream, output, source=SOURCE):
             raise ValueError('Missing upstream login.html')
         (branding / 'login.html').write_text(patch_login(login_source.read_text(encoding='utf-8')), encoding='utf-8', newline='\n')
         (branding / 'dci-login.js').write_bytes((source / 'src/login.js').read_bytes())
-        shutil.copytree(source / 'discord/ui', output / 'packages/dci_discord')
+        shutil.copytree(source / 'sso/ui', output / 'packages/dci_discord')
         after = inventory(upstream, names)
         if before != after:
             raise ValueError('Upstream changed during build; retry outside package upgrades')

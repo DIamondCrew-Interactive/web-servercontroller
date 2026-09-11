@@ -1,18 +1,19 @@
 [Unit]
-Description=DiamondCrew Interactive Discord OAuth broker
+Description=DiamondCrew Interactive Staff SSO relying party
 After=network-online.target
 Wants=network-online.target
 
 [Service]
-User=dci-discord
+User=dci-sso
 Group=www-data
-SupplementaryGroups=dci-discord
-RuntimeDirectory=dci-discord
+SupplementaryGroups=dci-sso
+RuntimeDirectory=dci-sso
 RuntimeDirectoryMode=0750
-StateDirectory=dci-discord
+StateDirectory=dci-sso
 StateDirectoryMode=0700
 UMask=0007
-ExecStart=/usr/bin/python3 -B /usr/local/lib/dci-discord/oauth.py
+LoadCredential=sso.json:/etc/diamondcrew-servercontroller/sso.json
+ExecStart=/usr/bin/python3 -B /usr/local/lib/dci-sso/broker.py
 Restart=on-failure
 RestartSec=3
 NoNewPrivileges=yes

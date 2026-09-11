@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const status = document.getElementById('status');
-  const command = args => cockpit.spawn(['/usr/bin/python3', '-B', '/usr/local/lib/dci-discord/accounts.py', ...args], {superuser: 'require', err: 'message'});
+  const command = args => cockpit.spawn(['/usr/bin/python3', '-B', '/usr/local/lib/dci-sso/accounts.py', ...args], {superuser: 'require', err: 'message'});
   const busy = value => document.querySelectorAll('button').forEach(button => { button.disabled = value; });
   async function refresh() {
     const data = JSON.parse(await command(['list']));
@@ -19,7 +19,7 @@
   }
   async function operate(action) {
     busy(true); status.textContent = '';
-    try { await action(); } catch { status.textContent = 'Akce se nezdařila. Ověřte administrátorský přístup, instalaci Discord přihlášení a případné existující přiřazení.'; }
+    try { await action(); } catch { status.textContent = 'Akce se nezdařila. Ověřte administrátorský přístup, instalaci Staff SSO a případné existující přiřazení.'; }
     finally { busy(false); }
   }
   document.getElementById('load').addEventListener('click', () => operate(refresh));
