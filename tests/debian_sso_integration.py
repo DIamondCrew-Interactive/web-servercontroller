@@ -4,7 +4,8 @@
 Run as root on Debian 12 with Cockpit 287.1-0+deb12u3:
   python3 tests/debian_sso_integration.py --user skopy
 Creates only temporary fixtures and normal PAM session/audit events for that user.
-It does not exercise cockpit-ws cookies, browser login, sudo or production routing.
+Add --with-ws for an isolated real cockpit-ws cookie test. Neither mode exercises
+the production browser/TLS route, password login or sudo.
 """
 import argparse
 import json
@@ -56,6 +57,9 @@ def frame_read(pipe, timeout=30):
 def fixture(role, root, socket_path):
     """Test-only module overrides. Production binaries have no environment bypass."""
     sys.path.insert(0, str(root / 'source'))
+    if role == 'ws':
+        import ws_cookie
+        ws_cookie.exec_ws(root, int(str(socket_path)))
     if role == 'broker':
         import pwd
         import socketserver
@@ -106,7 +110,7 @@ def stop(process):
             process.wait(timeout=5)
 
 
-def run(username):
+def run(username, with_ws=False):
     if sys.platform != 'linux' or os.geteuid() != 0:
         raise ValueError('Requires root on Debian 12; no native test ran')
     import pwd
@@ -197,7 +201,12 @@ def run(username):
             session(store.issue('bearer', SUBJECT, 30), False)
             mapping(uid=0, name='root')
             session(store.issue('bearer', SUBJECT, 30), False)
-            print(json.dumps({'result':'PASS','cockpit':version,'native_identity':actual,'checks':['PAM open/close','real bridge spawn UID/GID/groups','replay','expiry','unmapped identity','UID mismatch','root denied'],'not_tested':['cockpit-ws cookie','browser','password fallback','sudo/polkit','Staff OAuth','production proxy']}, indent=2))
+            cookie_result = 'not requested'
+            if with_ws:
+                import ws_cookie
+                mapping()
+                cookie_result = ws_cookie.run(root, store, user, command, socket_path, stop)
+            print(json.dumps({'result':'PASS','cockpit':version,'native_identity':actual,'checks':['PAM open/close','real bridge spawn UID/GID/groups','replay','expiry','unmapped identity','UID mismatch','root denied'],'ws_cookie':cookie_result,'not_tested':([] if with_ws else ['cockpit-ws cookie'])+['browser','password fallback','sudo/polkit','Staff OAuth','production proxy']}, indent=2))
         finally:
             stop(broker)
             broker.stdout.close(); broker.stderr.close()
@@ -206,10 +215,11 @@ def run(username):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--user')
+    parser.add_argument('--with-ws', action='store_true', help='Also verify genuine HTTP Cockpit session cookie on isolated loopback ws')
     parser.add_argument('--fixture', nargs=3, help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.fixture:
         sys.exit(fixture(args.fixture[0], Path(args.fixture[1]), Path(args.fixture[2])))
     if not args.user:
         parser.error('--user is required')
-    run(args.user)
+    run(args.user, args.with_ws)

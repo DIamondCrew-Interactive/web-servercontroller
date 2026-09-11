@@ -77,3 +77,35 @@ PAM může vytvořit běžné audit/journal a logind/user-runtime události. Tes
 pouze vlastní procesy a dočasné soubory. Není to plný cockpit-ws/browser test:
 cookie, heslový fallback, sudo/polkit, reálný Staff login a produkční proxy musí
 projít zvláštním staging ověřením. Na Windows nativní test proveden nebyl.
+
+### Rozšířený izolovaný cockpit-ws gate
+
+```sh
+python3 -B tests/debian_sso_integration.py --user skopy --with-ws
+```
+
+Volitelný gate spustí původní cockpit-ws jako neprivilegovaný systémový účet
+cockpit-ws. Parent předem otevře socket pouze na `127.0.0.1` s náhodným volným
+portem a předá jej přes `LISTEN_FDS`; nehrozí převzetí obsazeného produkčního portu.
+`XDG_CONFIG_DIRS` ukazuje pouze do dočasného adresáře a UnixPath do vlastního
+auth socketu. HOME/runtime jsou dočasné. Produkční config/PAM/socket se nemění.
+Ostatní autentizační metody jsou vypnuté pouze v testovacím configu, aby test
+nepoužil produkční password helper. Produkční fallback zůstává beze změny.
+
+Kontroly: skutečný bearer HTTP login, ws-issued HttpOnly/SameSiteStrict cookie,
+další úspěšný GET /cockpit/login pouze s touto cookie a správným username,
+odmítnutí anonymního požadavku, poškozené cookie a znovupoužitého bearer tokenu.
+Po ukončení vlastního ws musí doběhnout PAM cleanup. Cookie/token se nelogují.
+Test používá loopback HTTP a vlastní procesy, ne produkční TLS/cookies/browser.
+Nenahrazuje kontrolu tlačítka v prohlížeči, Secure cookie přes HTTPS, proxy,
+sudo/polkit, heslového fallbacku ani skutečného Staff loginu.
+
+Podklad v přesném upstreamu:
+- [main.c: LISTEN_FDS a no-tls](https://github.com/cockpit-project/cockpit/blob/287.1/src/ws/main.c)
+- [cockpitconf.c: XDG_CONFIG_DIRS](https://github.com/cockpit-project/cockpit/blob/287.1/src/common/cockpitconf.c)
+- [auth protokol: UnixPath](https://github.com/cockpit-project/cockpit/blob/287.1/doc/authentication.md)
+
+UID 1000 není identita ani očekávaný UID. Runtime používá NSS username/UID/GID,
+mapování pinuje skutečný UID. Dolní hranice 1000 omezuje mapování na běžné účty.
+Na DIA byl hlavním integrátorem pro candidate 9ddb205 ověřen skopy UID/GID 1001
+a skupiny 27, 100, 1001. Rozšířený ws cookie gate potřebuje nové nativní spuštění.

@@ -19,12 +19,18 @@ replay rejected. Issuer is read from fixture metadata and pinned by Staff to
 https://staff.diamondcrew.net. Discord API and HTTPS transport are mocked only
 in the integration fixture. No native PAM/session was executed by this test.
 
-The native tests/debian_sso_integration.py harness is prepared and syntax checked.
-Windows cannot execute native Linux PAM/bridge; native PASS is not claimed.
-It uses an existing account and temporary socket/map/DB, checks actual PAM
-open/close and bridge UID/GID/groups, and refuses replay/expiry/unmapped/UID/root.
-See sso-verification.md for requirements and expected audit/session effects.
+The main integrator reported native DIA PASS for exact candidate 9ddb205 and
+archive fae91edc674ee488b917bef12ee80d2b18d5c814d938002d36188dbee99d3d44:
+Cockpit 287.1-0+deb12u3, actual skopy UID/GID 1001, groups [27,100,1001],
+PAM open/close, real bridge and replay/expiry/unmapped/UID/root negatives PASS.
+This Windows task did not itself execute that native test.
+
+The additional --with-ws mode is prepared and syntax checked, but still needs
+native execution against the new candidate. It verifies genuine cockpit-ws
+cookie issuance/use on an isolated loopback listener, with private config,
+runtime/auth sockets, and PAM cleanup. See sso-verification.md for boundaries.
 
 Browser checks use static fixtures and mocked SSO responses. Actual cockpit-ws
-cookie/session lifecycle, sudo/polkit, password login, Staff OAuth and production
-routing still need staging verification. Nothing was pushed or deployed.
+cookie gate, sudo/polkit, password login, Staff OAuth and production routing still
+need further verification. Only the integration candidate branch is published;
+main/tag/release/production were not changed by this task.
