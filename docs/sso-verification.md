@@ -109,3 +109,15 @@ UID 1000 není identita ani očekávaný UID. Runtime používá NSS username/UI
 mapování pinuje skutečný UID. Dolní hranice 1000 omezuje mapování na běžné účty.
 Na DIA byl hlavním integrátorem pro candidate 9ddb205 ověřen skopy UID/GID 1001
 a skupiny 27, 100, 1001. Rozšířený ws cookie gate potřebuje nové nativní spuštění.
+
+### Login JSON schema correction
+
+Cockpit 287.1 [cockpit_creds_to_json](https://github.com/cockpit-project/cockpit/blob/287.1/src/ws/cockpitcreds.c)
+returns `csrf-token` and optional `login-data`, not top-level `user`. The cookie
+test compares the session CSRF value internally without printing it. Unix
+identity is checked using the same cookie through the upstream authenticated
+`/cockpit/channel/<csrf>?<base64-options>` external stream endpoint. It spawns
+only a read-only identity report under the bridge account, with superuser false,
+and compares username, real/effective/saved UID/GID and supplementary groups.
+Diagnostics show response field names and explicit identity fields only; never
+CSRF values, cookies, bearer credentials, raw response bodies or channel URLs.

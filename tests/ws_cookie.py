@@ -5,6 +5,7 @@ Upstream 287.1: src/ws/main.c (LISTEN_FDS), src/common/cockpitconf.c
 (XDG_CONFIG_DIRS), src/ws/cockpitauth.c ([bearer] UnixPath and session cookies).
 """
 from contextlib import closing
+import base64
 import http.client
 from http.cookies import SimpleCookie
 import json
@@ -15,6 +16,29 @@ import socketserver
 import subprocess
 import threading
 import time
+from urllib.parse import quote
+
+
+def response_shape(value):
+    """Diagnostics contain field names only, never session credential values."""
+    if not isinstance(value, dict):
+        return {'json_type':type(value).__name__}
+    result = {'keys':sorted(str(key)[:80] for key in value)}
+    if isinstance(value.get('login-data'), dict):
+        result['login_data_keys'] = sorted(str(key)[:80] for key in value['login-data'])
+    return result
+
+
+def login_payload(status, body):
+    # 287.1 cockpit_creds_to_json() has csrf-token and optional login-data.
+    # It does not expose a top-level user, and login-data is not mandatory.
+    try:
+        value = json.loads(body)
+    except ValueError:
+        raise ValueError('Cockpit login returned non-JSON; status='+str(status)) from None
+    if status != 200 or not isinstance(value, dict) or not isinstance(value.get('csrf-token'), str) or not value['csrf-token']:
+        raise ValueError('Invalid Cockpit login response: '+json.dumps({'status':status, **response_shape(value)}))
+    return value
 
 
 def ws_binary():
@@ -99,8 +123,7 @@ def run(root, store, user, command, broker_socket, stop):
             time.sleep(0.1)
         token=store.issue('bearer','584274123622973440',30)
         status,headers,body=request(port,{'Authorization':'Bearer '+token,'X-Superuser':'none'})
-        if status!=200 or json.loads(body).get('user')!=user.pw_name:
-            raise ValueError('Bearer did not establish mapped Cockpit HTTP identity (status '+str(status)+')')
+        login = login_payload(status, body)
         cookies=SimpleCookie()
         for name,value in headers:
             if name.lower()=='set-cookie': cookies.load(value)
@@ -108,8 +131,24 @@ def run(root, store, user, command, broker_socket, stop):
             raise ValueError('Missing genuine protected Cockpit session cookie')
         # The next request has ONLY the ws-issued cookie: no bearer or Linux password.
         status,_,body=request(port,{'Cookie':'cockpit='+cookies['cockpit'].value})
-        if status!=200 or json.loads(body).get('user')!=user.pw_name:
-            raise ValueError('Cockpit did not authenticate its own session cookie')
+        again = login_payload(status, body)
+        if again['csrf-token'] != login['csrf-token']:
+            raise ValueError('Cockpit cookie-only request did not retain its session')
+        # Read identity through the SAME ws-authenticated session. The external
+        # channel endpoint checks both the cookie and the session CSRF token.
+        # No command/channel fields: upstream assigns those to external channels.
+        program = 'import os,json;print(json.dumps(dict(user=os.environ.get("USER"),uids=os.getresuid(),gids=os.getresgid(),groups=os.getgroups())))'
+        options = {'payload':'stream','spawn':['/usr/bin/python3','-c',program],
+                   'err':'message','superuser':False,'external':{'content-type':'application/json'}}
+        channel_path = '/cockpit/channel/'+quote(login['csrf-token'],safe='')+'?'+base64.b64encode(json.dumps(options).encode()).decode()
+        status,_,body=request(port,{'Cookie':'cockpit='+cookies['cockpit'].value},path=channel_path)
+        try:
+            identity=json.loads(body)
+        except ValueError:
+            raise ValueError('Cookie-authenticated identity channel returned non-JSON; status='+str(status)) from None
+        if status!=200 or not isinstance(identity,dict) or identity.get('user')!=user.pw_name or identity.get('uids')!=[user.pw_uid]*3 or identity.get('gids')!=[user.pw_gid]*3 or set(identity.get('groups',[]))!=set(os.getgrouplist(user.pw_name,user.pw_gid)):
+            safe_identity={key:identity.get(key) for key in ['user','uids','gids','groups']} if isinstance(identity,dict) else {}
+            raise ValueError('Cookie session Unix identity mismatch: '+json.dumps({'status':status,'identity':safe_identity,**response_shape(identity)}))
         for headers in [{}, {'Cookie':'cockpit=invalid'}, {'Authorization':'Bearer '+token,'X-Superuser':'none'}]:
             if request(port,headers)[0]!=401:
                 raise ValueError('Anonymous/tampered-cookie/replayed-bearer request accepted')
@@ -119,8 +158,9 @@ def run(root, store, user, command, broker_socket, stop):
         events=[json.loads(line)['event'] for line in audit.read_text()[len(before):].splitlines()]
         if events!=['opened','closed'] or errors:
             raise ValueError('Private ws session did not complete PAM cleanup')
-        return {'result':'PASS','user':user.pw_name,'uid':user.pw_uid,
+        return {'result':'PASS','user':user.pw_name,'uid':user.pw_uid,'native_identity':identity,
                 'checks':['Bearer HTTP login','real cockpit cookie','cookie-only authenticated request',
+                          'same-cookie native bridge UID/GID/groups',
                           'anonymous refused','tampered cookie refused','bearer replay refused','PAM cleanup'],
                 'transport':'HTTP on private ephemeral 127.0.0.1 listener; not production TLS/browser'}
     finally:

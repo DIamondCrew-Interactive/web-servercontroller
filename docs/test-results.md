@@ -1,6 +1,6 @@
 # Verification of working 1.2.0: signed Staff assertions
 
-- 48 Server Controller Python tests PASS; 32 browser assertions PASS.
+- 51 Server Controller Python tests PASS; 32 browser assertions PASS.
 - Ed25519 signature/key/payload tampering, algorithm and local kid pinning,
   rejected jwk/jku, duplicate/extra JSON members, issuer/audience/state/subject,
   UUIDv4 jti and integer time/TTL/skew/expiry boundaries covered.
@@ -34,3 +34,10 @@ Browser checks use static fixtures and mocked SSO responses. Actual cockpit-ws
 cookie gate, sudo/polkit, password login, Staff OAuth and production routing still
 need further verification. Only the integration candidate branch is published;
 main/tag/release/production were not changed by this task.
+
+The first native --with-ws run (ed92b4d) reached HTTP 200 but failed a test-only
+assumption that login JSON includes top-level user. Upstream 287.1
+cockpit_creds_to_json emits csrf-token and optional login-data instead. The
+corrected test validates this schema, cookie-only session continuity, and Unix
+identity through a cookie+CSRF authenticated external stream channel in the SAME
+ws session. Native rerun remains required. Runtime authentication code unchanged.
