@@ -1,0 +1,7 @@
+{
+  "cockpit_version": "287.1-0+deb12u3",
+  "os_id": "debian",
+  "os_version": "12",
+  "packages": ["apps", "metrics", "networkmanager", "packagekit", "shell", "storaged", "systemd", "users"],
+  "debian_packages": ["cockpit-bridge", "cockpit-ws", "cockpit-system", "cockpit-networkmanager", "cockpit-storaged", "cockpit-packagekit"]
+}

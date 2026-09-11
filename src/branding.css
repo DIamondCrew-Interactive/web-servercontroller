@@ -1,0 +1,24 @@
+/* Appended to theme.css by the builder; only used by login + shell. */
+body.login-pf {
+  background: radial-gradient(ellipse at 12% 18%, #2ec7ff18, transparent 45%), radial-gradient(ellipse at 90% 72%, #f43cb217, transparent 48%), #050b17;
+  min-height: 100vh;
+}
+body.login-pf #main.container, body.login-pf #recent-hosts {
+  background: #0a1424; border: 1px solid #26384f; border-radius: 14px;
+  box-shadow: 0 24px 90px #0006; padding: 32px;
+}
+body.login-pf #main.container { border-top: 3px solid #2ec7ff; }
+#badge { width: 128px; height: 128px; opacity: 1; background: url("dc-logo.png") center / contain no-repeat; filter: drop-shadow(0 8px 28px #2ec7ff20); }
+body.login-pf .form-control[type=text], body.login-pf .form-control[type=password] { background: #07111f; color: #e9f2ff; border: 1px solid #426080; border-radius: 5px; }
+body.login-pf .form-control:focus { border-color: #2ec7ff; }
+#brand { background: none; color: #e9f2ff; font-size: 24px; line-height: 1.35; text-transform: none; font-weight: 600; }
+/* Cockpit login.js copies this content into the real heading. */
+#brand::before { content: "DiamondCrew Interactive"; }
+#brand::after { content: "Server Controller"; display: block; color: #a5b8cf; font-size: 15px; font-weight: 400; margin-top: 6px; }
+#index-brand::before { content: "DiamondCrew Interactive"; }
+.login-pf .login-note { color: #a5b8cf; }
+.login-pf .details { color: #a5b8cf; }
+@media (max-width: 600px) {
+  body.login-pf #main.container, body.login-pf #recent-hosts { padding: 22px; border-radius: 9px; }
+  #brand { font-size: 21px; }
+}

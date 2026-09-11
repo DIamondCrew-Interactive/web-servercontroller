@@ -1,0 +1,7 @@
+{
+  "name": "diamondcrew-interactive-cockpit-theme",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {"test:browser": "node tests/browser.cjs"},
+  "devDependencies": {"playwright": "1.63.0"}
+}

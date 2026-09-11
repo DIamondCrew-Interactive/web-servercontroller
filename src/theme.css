@@ -1,0 +1,113 @@
+/* DiamondCrew Interactive — Server Controller. Cockpit 287.1 / PatternFly 4.
+ * Presentation only: no visibility, ordering, privilege, or terminal canvas rules.
+ */
+:root, .pf-theme-dark {
+  color-scheme: dark;
+  --dci-bg: #050b17;
+  --dci-panel: #0a1424;
+  --dci-raised: #101e32;
+  --dci-border: #26384f;
+  --dci-text: #e9f2ff;
+  --dci-muted: #a5b8cf;
+  --dci-blue: #2ec7ff;
+  --dci-pink: #f43cb2;
+  --dci-gold: #f3d36b;
+  --dci-gradient: linear-gradient(110deg, #2ec7ff, #f43cb2 65%, #f3d36b);
+  --pf-global--BackgroundColor--100: var(--dci-panel);
+  --pf-global--BackgroundColor--200: var(--dci-bg);
+  --pf-global--BackgroundColor--300: var(--dci-raised);
+  --pf-global--BackgroundColor--400: #1c2c42;
+  --pf-global--BackgroundColor--dark-100: var(--dci-bg);
+  --pf-global--BackgroundColor--dark-200: var(--dci-panel);
+  --pf-global--BackgroundColor--dark-300: var(--dci-raised);
+  --pf-global--BackgroundColor--dark-400: #1c2c42;
+  --pf-global--Color--100: var(--dci-text);
+  --pf-global--Color--200: var(--dci-muted);
+  --pf-global--Color--light-100: var(--dci-text);
+  --pf-global--Color--light-200: var(--dci-muted);
+  --pf-global--BorderColor--100: var(--dci-border);
+  --pf-global--BorderColor--200: #426080;
+  --pf-global--primary-color--100: var(--dci-blue);
+  --pf-global--primary-color--200: #77dbff;
+  --pf-global--link--Color: var(--dci-blue);
+  --pf-global--link--Color--hover: #a3e8ff;
+  --pf-global--link--Color--light: var(--dci-blue);
+  --pf-global--active-color--100: var(--dci-blue);
+  --pf-global--active-color--400: #102d45;
+  --pf-global--disabled-color--100: #8292a7;
+  --pf-global--disabled-color--200: #192638;
+  --pf-global--FontFamily--text: "RedHatText", "Segoe UI", sans-serif;
+}
+html, body { background-color: var(--dci-bg); color: var(--dci-text); }
+body { accent-color: var(--dci-blue); }
+a { color: var(--dci-blue); }
+a:hover { color: #a3e8ff; }
+:focus-visible { outline: 2px solid var(--dci-blue); outline-offset: 3px; }
+::selection { background: #30516f; color: #fff; }
+.pf-c-page, .pf-c-page__main, .pf-c-page__main-section, .ct-page-fill {
+  background-color: var(--dci-bg);
+}
+.pf-c-card, .panel, .ct-listing-panel {
+  background: var(--dci-panel);
+  color: var(--dci-text);
+  border: 1px solid var(--dci-border);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px #0003;
+}
+.pf-c-card__title, .panel-title { color: var(--dci-text); font-weight: 600; }
+.panel-heading, .panel-footer, .pf-c-card__header { background-color: transparent; border-color: var(--dci-border); }
+.pf-c-table, .table, .listing-ct {
+  --pf-c-table--BackgroundColor: var(--dci-panel);
+  --pf-c-table--Color: var(--dci-text);
+  --pf-c-table--BorderColor: var(--dci-border);
+  background-color: var(--dci-panel); color: var(--dci-text);
+}
+.pf-c-table thead, .table thead { background: #0f2035; color: var(--dci-muted); }
+.pf-c-table tr, .table > tbody > tr > td, .table > thead > tr > th { border-color: var(--dci-border); }
+.pf-c-table tbody tr:hover, .table-hover > tbody > tr:hover { background-color: #11253b; }
+.pf-c-form-control, .form-control, .pf-c-select__toggle, .pf-c-dropdown__toggle, .pf-c-input-group__text {
+  background-color: #07111f; color: var(--dci-text); border-color: #426080;
+  border-radius: 5px;
+}
+.pf-c-form-control::placeholder, .form-control::placeholder { color: #96aac2; }
+.pf-c-form-control:focus, .form-control:focus { border-color: var(--dci-blue); }
+.pf-c-form-control[aria-invalid="true"], .form-control[aria-invalid="true"] { border-color: var(--pf-global--danger-color--100, #ff746c); }
+.pf-c-form-control:disabled, .form-control:disabled { background: #192638; color: #8292a7; }
+.pf-c-button { border-radius: 5px; }
+.pf-c-button.pf-m-primary:not(.pf-m-danger):not(:disabled):not(.pf-m-disabled) {
+  background: var(--dci-gradient); color: #06101c; font-weight: 600;
+}
+.pf-c-button.pf-m-primary:not(:disabled):hover { filter: brightness(1.1); }
+.pf-c-button.pf-m-secondary { --pf-c-button--m-secondary--Color: var(--dci-blue); }
+.pf-c-modal-box, .modal-content, .pf-c-dropdown__menu, .pf-c-select__menu, .pf-c-menu, .pf-c-popover__content {
+  background: var(--dci-raised); color: var(--dci-text); border: 1px solid #426080;
+  border-radius: 9px; box-shadow: 0 18px 65px #0008;
+}
+.modal-header, .modal-footer { border-color: var(--dci-border); }
+.pf-c-backdrop { background-color: #020610ba; }
+.pf-c-toolbar, .pf-c-tabs, .pf-c-tabs__link { background-color: var(--dci-panel); color: var(--dci-text); }
+.pf-c-alert { border-radius: 6px; } /* Keep upstream semantic status colors. */
+.pf-c-progress { --pf-c-progress__bar--BackgroundColor: #193047; --pf-c-progress__indicator--BackgroundColor: var(--dci-blue); }
+#topnav.header { background: #07101f; border-bottom: 1px solid var(--dci-border); box-shadow: 0 2px 18px #2ec7ff0d; }
+#nav-system, #nav-hosts, #hosts-sel, .ct-switcher { background-color: #060e1c; border-color: var(--dci-border); }
+#nav-system .pf-c-nav__link { color: #b8cbe1; border-radius: 4px; }
+#nav-system .pf-c-nav__link:hover { background: #11253b; color: #fff; }
+#nav-system .pf-c-nav__link.pf-m-current { background: linear-gradient(90deg, #103853, #0a1728); color: #fff; box-shadow: inset 3px 0 var(--dci-blue); }
+.dci-brand { display: flex; align-items: center; gap: 10px; padding: 20px 16px; border-bottom: 1px solid var(--dci-border); color: var(--dci-text); }
+.dci-brand img { width: 52px; height: 52px; object-fit: contain; flex: none; }
+.dci-brand strong { display: block; font-size: 16px; font-weight: 600; line-height: 1.25; }
+.dci-brand small { display: block; margin-top: 5px; font-size: 11px; color: var(--dci-muted); letter-spacing: .05em; }
+.dci-brand::after { content: ""; width: 3px; height: 42px; margin-left: auto; background: var(--dci-gradient); border-radius: 2px; }
+#system-overview-page body { background-image: radial-gradient(ellipse at 90% 0%, #f43cb20b, transparent 45%), radial-gradient(ellipse at 10% 0%, #2ec7ff0c, transparent 50%); }
+/* Terminal rendering, selection, ANSI palette and canvas remain under xterm control. */
+#terminal .terminal-toolbar, .terminal-actions { background-color: var(--dci-panel); border-color: var(--dci-border); }
+@media (max-width: 767px) {
+  .dci-brand { padding: 10px 16px; }
+  .dci-brand img { width: 36px; height: 36px; }
+  .dci-brand strong { font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { .pf-c-button { transition: none; } }
+@media (forced-colors: active) {
+  .pf-c-button.pf-m-primary:not(:disabled) { background: ButtonFace; color: ButtonText; border: 1px solid ButtonText; }
+  .pf-c-card, .dci-brand { border-color: CanvasText; }
+}

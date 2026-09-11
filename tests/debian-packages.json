@@ -1,0 +1,35 @@
+{
+  "version": "287.1-0+deb12u3",
+  "packages": [
+    {
+      "package": "cockpit-system",
+      "url": "https://snapshot.debian.org/file/f898348d8f828b552431e08063de682b27f9b0d4",
+      "sha256": "3df78ed5635c0c125353e2ac212666ac4947df74014a0e50581cca7b86a5b6d4"
+    },
+    {
+      "package": "cockpit-ws",
+      "url": "https://snapshot.debian.org/file/1e6e19da095af05aa8ee033a716d7b486c113c06",
+      "sha256": "635816d9b22d0c341d47f515fdcea1f34a69ccf4d1fc33b77995a874b0ab1f4c"
+    },
+    {
+      "package": "cockpit-networkmanager",
+      "url": "https://snapshot.debian.org/file/07d4752711305b514321d7e7e011e5f453edd31b",
+      "sha256": "355971b595378b10eec896a541da23cc57cee0bc98d2f256c011fdf0fa75bc31"
+    },
+    {
+      "package": "cockpit-storaged",
+      "url": "https://snapshot.debian.org/file/6ea8900439e40b38f714f058c3f22f889ca49f07",
+      "sha256": "b9ece1597dce815997928be9ca4fd16aa9885c3c5929fe6e76200007de9b8be0"
+    },
+    {
+      "package": "cockpit-packagekit",
+      "url": "https://snapshot.debian.org/file/e36dd8e3e8afcbe8e6a0932a6e45225b95269120",
+      "sha256": "bb579c282766ef63a276c2366843e6f6d112867c43b8941c51d26af9d99bb890"
+    },
+    {
+      "package": "cockpit-bridge",
+      "url": "https://snapshot.debian.org/file/be266ebcdbb6112145a56b76adef2a58c7e14260",
+      "sha256": "8fdd58f6c7f07a4a5097ca8c3b5a03e77c81b8721468c7465e67aecf3a2573a3"
+    }
+  ]
+}
